@@ -1,0 +1,16 @@
+{
+  "name": "DVN Coach Builders CRM",
+  "short_name": "DVN CRM",
+  "description": "Standardized Configurator and Live Floor Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F172A",
+  "icons": [
+    {
+      "src": "/window.svg",
+      "sizes": "unspecified",
+      "type": "image/svg+xml"
+    }
+  ]
+}
