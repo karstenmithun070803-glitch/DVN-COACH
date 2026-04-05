@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Check, ChevronDown, ChevronUp, Printer } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/utils/cn";
 import { 
@@ -14,6 +15,7 @@ import { t } from "@/data/translation";
 // Reverting to Geist (Inter-like) since we have no easy way of injecting external Google Fonts atm, but using standard Sans.
 
 export default function NewJobPage() {
+  const router = useRouter();
   const [activeModel, setActiveModel] = useState<BaseModels>("Town");
   const [selections, setSelections] = useState<Record<string, string>>(STANDARD_VARIATIONS["Town"]);
   const [activeSection, setActiveSection] = useState<string>("CHASSIS & BASIC");
@@ -94,6 +96,25 @@ export default function NewJobPage() {
     });
   };
 
+  const handlePushToLiveFloor = () => {
+    const newJob = {
+      id: `job-${Date.now()}`,
+      customerName: "New Customer (Draft)",
+      jobNo: `DVN-${Math.floor(1000 + Math.random() * 9000)}`,
+      chassisNo: "PENDING",
+      engineNo: "PENDING",
+      model: activeModel,
+      stage: "Chassis Arrival",
+      startDate: new Date().toISOString().split("T")[0],
+    };
+
+    const saved = localStorage.getItem("dvn-live-floor-jobs");
+    const currentJobs = saved ? JSON.parse(saved) : [];
+    localStorage.setItem("dvn-live-floor-jobs", JSON.stringify([...currentJobs, newJob]));
+
+    router.push("/");
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAFC] text-[#333333] -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 px-4 sm:px-6 lg:px-8 py-8 font-sans">
       <div className="max-w-7xl mx-auto">
@@ -140,13 +161,21 @@ export default function NewJobPage() {
               </div>
             </label>
             
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg shadow-sm font-medium transition-all"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print Spec</span>
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={handlePushToLiveFloor}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-slate-800/20"
+              >
+                Save & Move to Live Floor
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg shadow-sm font-medium transition-all"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Spec</span>
+              </button>
+            </div>
           </div>
         </div>
 
