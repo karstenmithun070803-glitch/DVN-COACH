@@ -30,6 +30,7 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = "dvn-admin-profiles-v1";
 const RENAME_MIGRATION_KEY = "dvn-v3-category-rename"; // Keep: one-time rename is safe as a flag
+const BASELINE_SYNC_KEY = "dvn-v4-baseline-sync"; // One-time forced reset of all standardSelections to STANDARD_VARIATIONS
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as any);
@@ -59,31 +60,29 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         localStorage.setItem(RENAME_MIGRATION_KEY, "true");
       }
 
-      // ─── Self-Healing Sync (runs every startup, fixes itself automatically) ──
-      // Compares each model's standardSelections count to Moffusil's.
-      // If any model is sparse (fewer selections), it is re-synced from STANDARD_VARIATIONS.
-      // This requires no version flags and recovers from any future data drift.
-      const moffusilCount = Object.keys(
-        currentProfiles["Moffusil"]?.standardSelections ?? {}
-      ).length;
-
-      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
-      modelsToCheck.forEach(model => {
-        const modelCount = Object.keys(
-          currentProfiles[model]?.standardSelections ?? {}
-        ).length;
-
-        if (modelCount < moffusilCount) {
-          // Model is sparse — re-apply full baseline with model-specific overrides
-          currentProfiles[model] = {
-            ...currentProfiles[model],
-            standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
-          };
-        }
-      });
+      // ─── One-Time Forced Baseline Sync (v4) ───────────────────────────────
+      // Unconditionally resets ALL four models' standardSelections from the
+      // canonical STANDARD_VARIATIONS source in specs.ts.
+      // Replaces the old count-based self-heal which silently skipped profiles
+      // that had the correct key count but stale/wrong values.
+      // specGroups and extrasPricing are fully preserved.
+      const hasSynced = localStorage.getItem(BASELINE_SYNC_KEY);
+      if (!hasSynced) {
+        const allModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
+        allModels.forEach(model => {
+          if (currentProfiles[model]) {
+            currentProfiles[model] = {
+              ...currentProfiles[model],
+              standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
+            };
+          }
+        });
+        localStorage.setItem(BASELINE_SYNC_KEY, "true");
+      }
 
       // ─── Spec Groups Sync ──────────────────────────────────────────────────
       // Ensure Town/College/Staff have the same spec groups as Moffusil.
+      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
       const moffusilGroups = currentProfiles["Moffusil"]?.specGroups;
       if (moffusilGroups) {
         modelsToCheck.forEach(model => {
@@ -182,11 +181,10 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const setStandardSelection = (model: BaseModels, categoryName: string, option: string) => {
     setProfiles(prev => {
       const newProfiles = { ...prev };
-      const targetProfile = { 
-        ...newProfiles[model], 
-        standardSelections: { ...newProfiles[model].standardSelections, [categoryName]: option } 
-      };
-      
+      // Deep clone the ENTIRE profile — guarantees zero reference bleed between
+      // models regardless of how the data arrived (localStorage, spread, etc.).
+      const targetProfile = structuredClone(newProfiles[model]);
+      targetProfile.standardSelections[categoryName] = option;
       newProfiles[model] = targetProfile;
       return newProfiles;
     });
