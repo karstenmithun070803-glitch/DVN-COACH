@@ -6,50 +6,36 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/utils/cn";
 import { 
-  SPEC_CONFIGURATOR, 
   BaseModels, 
-  BUS_MODELS_BASE, 
-  STANDARD_VARIATIONS,
 } from "@/data/specs";
+import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { t } from "@/data/translation";
-// Reverting to Geist (Inter-like) since we have no easy way of injecting external Google Fonts atm, but using standard Sans.
 
 export default function NewJobPage() {
   const router = useRouter();
+  const { profiles, isLoaded } = useAdminSettings();
+  
   const [activeModel, setActiveModel] = useState<BaseModels>("Town");
-  const [selections, setSelections] = useState<Record<string, string>>(STANDARD_VARIATIONS["Town"]);
+  const [selections, setSelections] = useState<Record<string, string>>({});
   const [activeSection, setActiveSection] = useState<string>("CHASSIS & BASIC");
   
   const [isTamil, setIsTamil] = useState(false);
   const [isStandardBuild, setIsStandardBuild] = useState(true);
 
-  // Stage 3 updated to Stage 5 logic: Global base fallback
+  // Initialize selections once profiles are loaded
+  useEffect(() => {
+    if (isLoaded && isStandardBuild) {
+      setSelections(profiles[activeModel].standardSelections);
+    }
+  }, [isLoaded, activeModel, isStandardBuild, profiles]);
+
   const handleStandardToggle = (checked: boolean) => {
     setIsStandardBuild(checked);
-    if (checked) {
-      setSelections({ 
-        ...STANDARD_VARIATIONS["Moffusil"], 
-        ...(STANDARD_VARIATIONS[activeModel] || {}) 
-      });
+    if (checked && isLoaded) {
+      setSelections(profiles[activeModel].standardSelections);
     } else {
       setSelections({}); 
     }
-  };
-
-  useEffect(() => {
-    if (isStandardBuild) {
-      setSelections({ 
-        ...STANDARD_VARIATIONS["Moffusil"], 
-        ...(STANDARD_VARIATIONS[activeModel] || {}) 
-      });
-    }
-  }, [activeModel]);
-
-  const extrasPricing: Record<string, number> = {
-    "art-work-Yes": 15000,
-    "audio-video-Yes": 45000,
-    "decorative-lights-Yes": 25000,
-    "stickers-Yes": 8000,
   };
 
   const handleModelSelect = (model: BaseModels) => {
@@ -57,16 +43,42 @@ export default function NewJobPage() {
   };
 
   const currentEstimate = useMemo(() => {
-    let total = BUS_MODELS_BASE[activeModel].basePrice;
+    if (!isLoaded) return 0;
+    const profile = profiles[activeModel];
+    let total = profile.basePrice;
+    
     Object.entries(selections).forEach(([key, val]) => {
-      const fieldDef = SPEC_CONFIGURATOR.flatMap(s => s.fields).find(f => f.name === key);
+      // Check for extras pricing
+      // Note: In our new schema, extrasPricing is a map of item-id to price
+      // We find the field to get its ID
+      const fieldDef = profile.specGroups.flatMap(s => s.fields).find(f => f.name === key);
       if (fieldDef) {
-        const priceKey = `${fieldDef.id}-${val}`;
-        if (extrasPricing[priceKey]) total += extrasPricing[priceKey];
+        // Find if this option is an "Extra"
+        // For simplicity, we check if the option exists in extrasPricing keys
+        // or if the field ID is in the extras list.
+        // Actually, the user's plan says extrasPricing maps Extra Item -> Current Price.
+        // Let's assume the key is the option name or a combination.
+        // In specs.ts, extra fields had ids like "art-work", options "Yes"/"No".
+        if (fieldDef.id.includes("extra") || fieldDef.id === "art-work" || fieldDef.id === "audio-video" || fieldDef.id === "decorative-lights" || fieldDef.id === "stickers") {
+           if (val === "Yes" && profile.extrasPricing[fieldDef.id]) {
+             total += profile.extrasPricing[fieldDef.id];
+           }
+        }
       }
     });
     return total;
-  }, [activeModel, selections, extrasPricing]);
+  }, [activeModel, selections, profiles, isLoaded]);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      </div>
+    );
+  }
+
+  const activeProfile = profiles[activeModel];
+  const SPEC_CONFIGURATOR = activeProfile.specGroups;
 
   // Add scroll handler for Accordions
   const handleSectionToggle = (sectionName: string) => {
@@ -355,7 +367,7 @@ export default function NewJobPage() {
                         <div className="flex flex-wrap gap-3">
                           {field.options.map(opt => {
                             const isSelected = selections[field.name] === opt;
-                            const hasExtraPrice = extrasPricing[`${field.id}-${opt}`];
+                            const hasExtraPrice = activeProfile.extrasPricing[field.id];
                             
                             return (
                               <div
@@ -376,7 +388,7 @@ export default function NewJobPage() {
                                   {t(opt, isTamil)}
                                 </span>
                                 
-                                {hasExtraPrice && (
+                                {hasExtraPrice && opt === "Yes" && (
                                   <span className={cn(
                                     "text-xs font-medium ml-4", 
                                     isSelected ? "text-teal-600" : "text-slate-400"

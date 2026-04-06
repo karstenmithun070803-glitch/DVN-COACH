@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { name: "Live Floor", href: "/" },
   { name: "New Job", href: "/new-job" },
   { name: "The Vault", href: "/vault" },
-  { name: "Admin Master", href: "/admin" },
+  { name: "Admin Master", href: "/admin-master" },
 ];
 
 export function Navigation() {
