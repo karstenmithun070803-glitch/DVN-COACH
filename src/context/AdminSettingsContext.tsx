@@ -31,6 +31,7 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 const LOCAL_STORAGE_KEY = "dvn-admin-profiles-v1";
 const V2_SYNC_KEY = "dvn-v2-baseline-sync";
 const V3_RENAME_KEY = "dvn-v3-category-rename";
+const V4_FULL_SYNC_KEY = "dvn-v4-full-baseline-sync";
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as any);
@@ -77,7 +78,24 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         localStorage.setItem(V3_RENAME_KEY, "true");
       }
 
+      // Step 3: V4 Full Baseline Sync
+      // Re-applies the complete Moffusil standard selections to Town/College/Staff.
+      // Fixes existing users who had sparse data from before the specs.ts update.
+      const hasSyncedV4 = localStorage.getItem(V4_FULL_SYNC_KEY);
+      if (!hasSyncedV4) {
+        const models: BaseModels[] = ["Town", "College", "Staff"];
+        models.forEach(model => {
+          currentProfiles[model] = {
+            ...currentProfiles[model],
+            standardSelections: { ...STANDARD_VARIATIONS[model] }
+          };
+        });
+        localStorage.setItem(V4_FULL_SYNC_KEY, "true");
+        console.log("[DVN CRM] V4 Migration: Full baseline sync applied to all models.");
+      }
+
       setProfiles(currentProfiles);
+      console.log("[DVN CRM] SUCCESS: Bus Models loaded from Permanent Storage.");
     } else {
       // Step 0: Manual Migration from specs.ts (First Load)
       const initialProfiles: Partial<Record<BaseModels, BusModelProfile>> = {};
@@ -97,7 +115,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         };
       });
       setProfiles(initialProfiles as Record<BaseModels, BusModelProfile>);
-      localStorage.setItem(V2_SYNC_KEY, "true"); // Mark as synced for first-load installs
+      localStorage.setItem(V2_SYNC_KEY, "true");
+      localStorage.setItem(V4_FULL_SYNC_KEY, "true"); // Fresh install already has correct defaults
+      console.log("[DVN CRM] SUCCESS: Bus Models initialised from full baseline (fresh install).");
     }
     setIsLoaded(true);
   }, []);
