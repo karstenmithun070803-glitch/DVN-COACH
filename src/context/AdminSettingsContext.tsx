@@ -29,9 +29,7 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = "dvn-admin-profiles-v1";
-const V2_SYNC_KEY = "dvn-v2-baseline-sync";
-const V3_RENAME_KEY = "dvn-v3-category-rename";
-const V4_FULL_SYNC_KEY = "dvn-v4-full-baseline-sync";
+const RENAME_MIGRATION_KEY = "dvn-v3-category-rename"; // Keep: one-time rename is safe as a flag
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as any);
@@ -43,82 +41,87 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
     if (saved) {
       currentProfiles = JSON.parse(saved);
-      
-      // Step 1: Baseline Sync (Legacy)
-      const hasSyncedV2 = localStorage.getItem(V2_SYNC_KEY);
-      if (!hasSyncedV2) {
-        const moffusil = currentProfiles["Moffusil"];
-        if (moffusil) {
-          const models: BaseModels[] = ["Town", "College", "Staff"];
-          models.forEach(model => {
-             currentProfiles[model] = {
-               ...currentProfiles[model],
-               specGroups: JSON.parse(JSON.stringify(moffusil.specGroups)),
-               standardSelections: JSON.parse(JSON.stringify(moffusil.standardSelections))
-             };
-          });
-          localStorage.setItem(V2_SYNC_KEY, "true");
-        }
-      }
 
-      // Step 2: Unified Renaming Migration (New)
-      const hasSyncedV3 = localStorage.getItem(V3_RENAME_KEY);
-      if (!hasSyncedV3) {
+      // ─── One-time rename migration ─────────────────────────────────────────
+      // Renames "CHASSIS & BASIC" → "CHASSIS" across all models.
+      const hasRenamed = localStorage.getItem(RENAME_MIGRATION_KEY);
+      if (!hasRenamed) {
         Object.keys(currentProfiles).forEach(key => {
           const modelKey = key as BaseModels;
           if (currentProfiles[modelKey]?.specGroups) {
-            currentProfiles[modelKey].specGroups = currentProfiles[modelKey].specGroups.map(group => {
-              if (group.groupName === "CHASSIS & BASIC") {
-                return { ...group, groupName: "CHASSIS" };
-              }
-              return group;
-            });
+            currentProfiles[modelKey].specGroups = currentProfiles[modelKey].specGroups.map(group =>
+              group.groupName === "CHASSIS & BASIC"
+                ? { ...group, groupName: "CHASSIS" }
+                : group
+            );
           }
         });
-        localStorage.setItem(V3_RENAME_KEY, "true");
+        localStorage.setItem(RENAME_MIGRATION_KEY, "true");
       }
 
-      // Step 3: V4 Full Baseline Sync
-      // Re-applies the complete Moffusil standard selections to Town/College/Staff.
-      // Fixes existing users who had sparse data from before the specs.ts update.
-      const hasSyncedV4 = localStorage.getItem(V4_FULL_SYNC_KEY);
-      if (!hasSyncedV4) {
-        const models: BaseModels[] = ["Town", "College", "Staff"];
-        models.forEach(model => {
+      // ─── Self-Healing Sync (runs every startup, fixes itself automatically) ──
+      // Compares each model's standardSelections count to Moffusil's.
+      // If any model is sparse (fewer selections), it is re-synced from STANDARD_VARIATIONS.
+      // This requires no version flags and recovers from any future data drift.
+      const moffusilCount = Object.keys(
+        currentProfiles["Moffusil"]?.standardSelections ?? {}
+      ).length;
+
+      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
+      modelsToCheck.forEach(model => {
+        const modelCount = Object.keys(
+          currentProfiles[model]?.standardSelections ?? {}
+        ).length;
+
+        if (modelCount < moffusilCount) {
+          // Model is sparse — re-apply full baseline with model-specific overrides
           currentProfiles[model] = {
             ...currentProfiles[model],
-            standardSelections: { ...STANDARD_VARIATIONS[model] }
+            standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
           };
+        }
+      });
+
+      // ─── Spec Groups Sync ──────────────────────────────────────────────────
+      // Ensure Town/College/Staff have the same spec groups as Moffusil.
+      const moffusilGroups = currentProfiles["Moffusil"]?.specGroups;
+      if (moffusilGroups) {
+        modelsToCheck.forEach(model => {
+          const modelGroupCount = currentProfiles[model]?.specGroups?.length ?? 0;
+          if (modelGroupCount < moffusilGroups.length) {
+            currentProfiles[model] = {
+              ...currentProfiles[model],
+              specGroups: structuredClone(moffusilGroups),
+            };
+          }
         });
-        localStorage.setItem(V4_FULL_SYNC_KEY, "true");
-        console.log("[DVN CRM] V4 Migration: Full baseline sync applied to all models.");
       }
 
-      setProfiles(currentProfiles);
-      console.log("[DVN CRM] SUCCESS: Bus Models loaded from Permanent Storage.");
     } else {
-      // Step 0: Manual Migration from specs.ts (First Load)
+      // ─── Fresh Install ─────────────────────────────────────────────────────
+      // No localStorage found — build full profiles from specs.ts defaults.
       const initialProfiles: Partial<Record<BaseModels, BusModelProfile>> = {};
       const models: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
-      
+
       models.forEach(model => {
         initialProfiles[model] = {
           basePrice: BUS_MODELS_BASE[model].basePrice,
-          specGroups: JSON.parse(JSON.stringify(SPEC_CONFIGURATOR)),
-          standardSelections: { ...STANDARD_VARIATIONS[model] },
+          specGroups: structuredClone(SPEC_CONFIGURATOR),
+          standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
           extrasPricing: {
             "art-work": 15000,
             "audio-video": 45000,
             "decorative-lights": 25000,
             "stickers": 8000,
-          }
+          },
         };
       });
-      setProfiles(initialProfiles as Record<BaseModels, BusModelProfile>);
-      localStorage.setItem(V2_SYNC_KEY, "true");
-      localStorage.setItem(V4_FULL_SYNC_KEY, "true"); // Fresh install already has correct defaults
-      console.log("[DVN CRM] SUCCESS: Bus Models initialised from full baseline (fresh install).");
+
+      currentProfiles = initialProfiles as Record<BaseModels, BusModelProfile>;
+      localStorage.setItem(RENAME_MIGRATION_KEY, "true");
     }
+
+    setProfiles(currentProfiles);
     setIsLoaded(true);
   }, []);
 
@@ -138,10 +141,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
   const addOption = (model: BaseModels, groupName: string, fieldId: string, option: string) => {
     setProfiles(prev => {
-      // Step 2: Strict Isolation Lock - Only update the specific model's profile
       const newProfiles = { ...prev };
-      // Deep clone only the target model's profile to prevent any bleed-through
-      const targetProfile = JSON.parse(JSON.stringify(newProfiles[model]));
+      // Deep clone only the target model — zero bleed-through to other models
+      const targetProfile = structuredClone(newProfiles[model]);
       
       const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
       if (group) {
@@ -159,14 +161,13 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const removeOption = (model: BaseModels, groupName: string, fieldId: string, option: string) => {
     setProfiles(prev => {
       const newProfiles = { ...prev };
-      const targetProfile = JSON.parse(JSON.stringify(newProfiles[model]));
+      const targetProfile = structuredClone(newProfiles[model]);
       
       const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
       if (group) {
         const field = group.fields.find((f: any) => f.id === fieldId);
         if (field) {
           field.options = field.options.filter((o: string) => o !== option);
-          // If removed option was standard, clear it
           if (targetProfile.standardSelections[field.name] === option) {
             delete targetProfile.standardSelections[field.name];
           }
