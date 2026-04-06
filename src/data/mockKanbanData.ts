@@ -13,9 +13,13 @@ export interface JobCard {
   jobNo: string;
   chassisNo: string;
   engineNo: string;
+  mobileNo?: string;
   model: BaseModels;
   stage: ProductionStage;
   startDate: string;
+  selections?: Record<string, string>;
+  totalEstimate?: number;
+  status: "active" | "archived";
 }
 
 export const STAGES: ProductionStage[] = [
@@ -35,7 +39,8 @@ export const MOCK_JOBS: JobCard[] = [
     engineNo: "ENG-9921",
     model: "Moffusil",
     stage: "Chassis Arrival",
-    startDate: "2024-04-01"
+    startDate: "2024-04-01",
+    status: "active"
   },
   {
     id: "job-2",
@@ -45,7 +50,8 @@ export const MOCK_JOBS: JobCard[] = [
     engineNo: "ENG-1123",
     model: "Town",
     stage: "Structure & Framing",
-    startDate: "2024-03-28"
+    startDate: "2024-03-28",
+    status: "active"
   },
   {
     id: "job-3",
@@ -55,7 +61,8 @@ export const MOCK_JOBS: JobCard[] = [
     engineNo: "ENG-4455",
     model: "College",
     stage: "Paneling & Flooring",
-    startDate: "2024-03-25"
+    startDate: "2024-03-25",
+    status: "active"
   },
   {
     id: "job-4",
@@ -65,7 +72,8 @@ export const MOCK_JOBS: JobCard[] = [
     engineNo: "ENG-8877",
     model: "Moffusil",
     stage: "Painting & Interior",
-    startDate: "2024-03-20"
+    startDate: "2024-03-20",
+    status: "active"
   },
   {
     id: "job-5",
@@ -75,7 +83,8 @@ export const MOCK_JOBS: JobCard[] = [
     engineNo: "ENG-3344",
     model: "Staff",
     stage: "Final Inspection & Delivery",
-    startDate: "2024-03-15"
+    startDate: "2024-03-15",
+    status: "active"
   },
   {
     id: "job-6",
@@ -85,6 +94,7 @@ export const MOCK_JOBS: JobCard[] = [
     engineNo: "ENG-5566",
     model: "College",
     stage: "Chassis Arrival",
-    startDate: "2024-04-02"
+    startDate: "2024-04-02",
+    status: "active"
   }
 ];

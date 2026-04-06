@@ -24,7 +24,7 @@ export const BUS_MODELS_BASE = {
 
 export const SPEC_CONFIGURATOR: SpecCategoryGroup[] = [
   {
-    groupName: "CHASSIS & BASIC",
+    groupName: "CHASSIS",
     fields: [
       { id: "chassis-brand", name: "Chassis Brand", options: ["Leyland", "TATA", "Eicher"] },
       { id: "body-type", name: "Body Type", options: ["Moffusil", "Town", "College", "Staff"] },
@@ -185,7 +185,7 @@ export const SPEC_CONFIGURATOR: SpecCategoryGroup[] = [
 // Master "Standard Build" Configuration (applies to ALL sections)
 export const STANDARD_VARIATIONS: Record<BaseModels, Record<string, string>> = {
   Moffusil: {
-    // CHASSIS & BASIC
+    // CHASSIS
     "Chassis Brand": "Leyland",
     "Body Type": "Moffusil",
     // STRUCTURE

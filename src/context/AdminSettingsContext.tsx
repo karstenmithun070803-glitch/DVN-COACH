@@ -29,6 +29,8 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = "dvn-admin-profiles-v1";
+const V2_SYNC_KEY = "dvn-v2-baseline-sync";
+const V3_RENAME_KEY = "dvn-v3-category-rename";
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as any);
@@ -36,17 +38,55 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    let currentProfiles: Record<BaseModels, BusModelProfile>;
+
     if (saved) {
-      setProfiles(JSON.parse(saved));
+      currentProfiles = JSON.parse(saved);
+      
+      // Step 1: Baseline Sync (Legacy)
+      const hasSyncedV2 = localStorage.getItem(V2_SYNC_KEY);
+      if (!hasSyncedV2) {
+        const moffusil = currentProfiles["Moffusil"];
+        if (moffusil) {
+          const models: BaseModels[] = ["Town", "College", "Staff"];
+          models.forEach(model => {
+             currentProfiles[model] = {
+               ...currentProfiles[model],
+               specGroups: JSON.parse(JSON.stringify(moffusil.specGroups)),
+               standardSelections: JSON.parse(JSON.stringify(moffusil.standardSelections))
+             };
+          });
+          localStorage.setItem(V2_SYNC_KEY, "true");
+        }
+      }
+
+      // Step 2: Unified Renaming Migration (New)
+      const hasSyncedV3 = localStorage.getItem(V3_RENAME_KEY);
+      if (!hasSyncedV3) {
+        Object.keys(currentProfiles).forEach(key => {
+          const modelKey = key as BaseModels;
+          if (currentProfiles[modelKey]?.specGroups) {
+            currentProfiles[modelKey].specGroups = currentProfiles[modelKey].specGroups.map(group => {
+              if (group.groupName === "CHASSIS & BASIC") {
+                return { ...group, groupName: "CHASSIS" };
+              }
+              return group;
+            });
+          }
+        });
+        localStorage.setItem(V3_RENAME_KEY, "true");
+      }
+
+      setProfiles(currentProfiles);
     } else {
-      // Manual Migration from specs.ts
+      // Step 0: Manual Migration from specs.ts (First Load)
       const initialProfiles: Partial<Record<BaseModels, BusModelProfile>> = {};
       const models: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
       
       models.forEach(model => {
         initialProfiles[model] = {
           basePrice: BUS_MODELS_BASE[model].basePrice,
-          specGroups: JSON.parse(JSON.stringify(SPEC_CONFIGURATOR)), // Deep clone
+          specGroups: JSON.parse(JSON.stringify(SPEC_CONFIGURATOR)),
           standardSelections: { ...STANDARD_VARIATIONS[model] },
           extrasPricing: {
             "art-work": 15000,
@@ -57,6 +97,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         };
       });
       setProfiles(initialProfiles as Record<BaseModels, BusModelProfile>);
+      localStorage.setItem(V2_SYNC_KEY, "true"); // Mark as synced for first-load installs
     }
     setIsLoaded(true);
   }, []);
@@ -68,22 +109,29 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   }, [profiles, isLoaded]);
 
   const updateBasePrice = (model: BaseModels, price: number) => {
-    setProfiles(prev => ({
-      ...prev,
-      [model]: { ...prev[model], basePrice: price }
-    }));
+    setProfiles(prev => {
+      const newProfiles = { ...prev };
+      newProfiles[model] = { ...newProfiles[model], basePrice: price };
+      return newProfiles;
+    });
   };
 
   const addOption = (model: BaseModels, groupName: string, fieldId: string, option: string) => {
     setProfiles(prev => {
+      // Step 2: Strict Isolation Lock - Only update the specific model's profile
       const newProfiles = { ...prev };
-      const group = newProfiles[model].specGroups.find(g => g.groupName === groupName);
+      // Deep clone only the target model's profile to prevent any bleed-through
+      const targetProfile = JSON.parse(JSON.stringify(newProfiles[model]));
+      
+      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
       if (group) {
-        const field = group.fields.find(f => f.id === fieldId);
+        const field = group.fields.find((f: any) => f.id === fieldId);
         if (field && !field.options.includes(option)) {
           field.options = [...field.options, option];
         }
       }
+      
+      newProfiles[model] = targetProfile;
       return newProfiles;
     });
   };
@@ -91,39 +139,47 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const removeOption = (model: BaseModels, groupName: string, fieldId: string, option: string) => {
     setProfiles(prev => {
       const newProfiles = { ...prev };
-      const group = newProfiles[model].specGroups.find(g => g.groupName === groupName);
+      const targetProfile = JSON.parse(JSON.stringify(newProfiles[model]));
+      
+      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
       if (group) {
-        const field = group.fields.find(f => f.id === fieldId);
+        const field = group.fields.find((f: any) => f.id === fieldId);
         if (field) {
-          field.options = field.options.filter(o => o !== option);
+          field.options = field.options.filter((o: string) => o !== option);
           // If removed option was standard, clear it
-          if (newProfiles[model].standardSelections[field.name] === option) {
-            delete newProfiles[model].standardSelections[field.name];
+          if (targetProfile.standardSelections[field.name] === option) {
+            delete targetProfile.standardSelections[field.name];
           }
         }
       }
+      
+      newProfiles[model] = targetProfile;
       return newProfiles;
     });
   };
 
   const setStandardSelection = (model: BaseModels, categoryName: string, option: string) => {
-    setProfiles(prev => ({
-      ...prev,
-      [model]: {
-        ...prev[model],
-        standardSelections: { ...prev[model].standardSelections, [categoryName]: option }
-      }
-    }));
+    setProfiles(prev => {
+      const newProfiles = { ...prev };
+      const targetProfile = { 
+        ...newProfiles[model], 
+        standardSelections: { ...newProfiles[model].standardSelections, [categoryName]: option } 
+      };
+      
+      newProfiles[model] = targetProfile;
+      return newProfiles;
+    });
   };
 
   const updateExtraPrice = (model: BaseModels, itemId: string, price: number) => {
-    setProfiles(prev => ({
-      ...prev,
-      [model]: {
-        ...prev[model],
-        extrasPricing: { ...prev[model].extrasPricing, [itemId]: price }
-      }
-    }));
+    setProfiles(prev => {
+      const newProfiles = { ...prev };
+      newProfiles[model] = {
+        ...newProfiles[model],
+        extrasPricing: { ...newProfiles[model].extrasPricing, [itemId]: price }
+      };
+      return newProfiles;
+    });
   };
 
   return (

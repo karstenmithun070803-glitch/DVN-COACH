@@ -5,7 +5,7 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "College": "காலேஜ்",
   "Staff": "ஸ்டாஃப்",
 
-  "CHASSIS & BASIC": "சேஸிஸ் & பேசிக்",
+  "CHASSIS": "சேஸிஸ்",
   "Chassis Brand": "சேஸி பிராண்ட்",
   "Body Type": "பாடி டைப்",
   "STRUCTURE": "ஸ்ட்ரக்சர்",

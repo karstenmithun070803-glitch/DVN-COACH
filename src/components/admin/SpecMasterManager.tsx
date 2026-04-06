@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels, SpecCategoryGroup } from "@/data/specs";
-import { ChevronDown, ChevronUp, Plus, Trash2, Star, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Star } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { t } from "@/data/translation";
 
@@ -15,9 +15,21 @@ interface SpecMasterManagerProps {
 
 export function SpecMasterManager({ model, specGroups, standardSelections }: SpecMasterManagerProps) {
   const { addOption, removeOption, setStandardSelection } = useAdminSettings();
-  const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS & BASIC");
+  const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [addingToField, setAddingToField] = useState<string | null>(null);
+
+  // Smart Navigation: Auto-scroll to header when section expands
+  useEffect(() => {
+    if (activeAccordion) {
+      setTimeout(() => {
+        const el = document.getElementById(`admin-section-${activeAccordion}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [activeAccordion]);
 
   const handleAddOption = (groupName: string, fieldId: string) => {
     if (newOptionValue.trim()) {
@@ -27,12 +39,18 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
     }
   };
 
+  const handleToggleSelection = (categoryName: string, option: string) => {
+    const isCurrentlyActive = standardSelections[categoryName] === option;
+    setStandardSelection(model, categoryName, isCurrentlyActive ? "" : option);
+  };
+
   return (
     <div className="space-y-4">
       {specGroups.map((group) => (
         <div 
           key={group.groupName} 
-          className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"
+          id={`admin-section-${group.groupName}`}
+          className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden scroll-mt-24"
         >
           {/* Group Header */}
           <button
@@ -111,26 +129,30 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
 
                           <div className="flex items-center border-l border-slate-100 pl-3 ml-1 group-hover:border-teal-400 transition-colors">
                             <button 
-                              onClick={() => setStandardSelection(model, field.name, opt)}
+                              onClick={() => handleToggleSelection(field.name, opt)}
                               className={cn(
                                 "p-1.5 rounded-md transition-all",
                                 isDefault 
                                   ? "bg-teal-500/50 text-white" 
                                   : "text-slate-300 hover:text-teal-600 hover:bg-teal-50"
                               )}
-                              title={isDefault ? "Standard Selection" : "Set as Standard"}
+                              title={isDefault ? "Selected" : "Set as Standard"}
                             >
                               <Star className={cn("w-3.5 h-3.5", isDefault && "fill-current")} />
                             </button>
-                            {!isDefault && (
-                              <button 
-                                onClick={() => removeOption(model, group.groupName, field.id, opt)}
-                                className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
-                                title="Delete Option"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            
+                            <button 
+                              onClick={() => removeOption(model, group.groupName, field.id, opt)}
+                              className={cn(
+                                "p-1.5 rounded-md transition-all",
+                                isDefault
+                                  ? "text-white/60 hover:text-white hover:bg-white/10"
+                                  : "text-slate-300 hover:text-red-500 hover:bg-red-50"
+                              )}
+                              title="Delete Option"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       );

@@ -6,11 +6,12 @@ import { Search, Plus, Filter, LayoutGrid, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { BaseModels } from "@/data/specs";
 import { JobCard, ProductionStage } from "@/data/mockKanbanData";
+import { useJobs } from "@/context/JobsContext";
 
 export default function LiveFloorPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { jobs, addJob } = useJobs();
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -29,14 +30,12 @@ export default function LiveFloorPage() {
       startDate: new Date().toISOString().split("T")[0],
     };
 
-    const saved = localStorage.getItem("dvn-live-floor-jobs");
-    const currentJobs = saved ? JSON.parse(saved) : [];
-    localStorage.setItem("dvn-live-floor-jobs", JSON.stringify([...currentJobs, newJob]));
-    
-    setRefreshTrigger(prev => prev + 1);
+    addJob(newJob);
     setIsModalOpen(false);
     setFormData({ customerName: "", jobNo: "", chassisNo: "", engineNo: "", model: "Moffusil" });
   };
+
+  const activeCount = jobs.length;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
@@ -45,7 +44,7 @@ export default function LiveFloorPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-[#333333] tracking-tight">Live Floor</h1>
-            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">34 Active Production Units</p>
+            <p className="text-[11px] text-teal-600 font-bold uppercase tracking-wider">{activeCount} Active Production Units</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -82,7 +81,7 @@ export default function LiveFloorPage() {
       {/* Main Kanban Content */}
       <main className="flex-1 overflow-hidden flex flex-col">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 overflow-hidden">
-          <KanbanBoard key={refreshTrigger} searchQuery={searchQuery} />
+          <KanbanBoard searchQuery={searchQuery} />
         </div>
       </main>
 
@@ -184,7 +183,7 @@ export default function LiveFloorPage() {
           </span>
           <span className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-            12 Near Delivery
+            {jobs.filter(j => j.stage === 'Final Inspection & Delivery').length} Near Delivery
           </span>
         </div>
         <div className="flex items-center gap-4">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels } from "@/data/specs";
-import { IndianRupee, Save, Percent, TrendingUp } from "lucide-react";
+import { IndianRupee, Save } from "lucide-react";
 
 interface ModelPriceEditorProps {
   model: BaseModels;
@@ -32,7 +32,7 @@ export function ModelPriceEditor({ model, basePrice }: ModelPriceEditorProps) {
         <span className="bg-teal-50 text-teal-600 text-[10px] px-2 py-1 rounded-full font-black uppercase">Live</span>
       </div>
       
-      <div className="p-6 space-y-6">
+      <div className="p-6">
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Starting Price</label>
           <div className="relative group">
@@ -57,28 +57,6 @@ export function ModelPriceEditor({ model, basePrice }: ModelPriceEditorProps) {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Stats / Feedback */}
-        <div className="grid grid-cols-2 gap-4">
-           <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <TrendingUp className="w-4 h-4 text-teal-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Status</p>
-                <p className="text-xs font-bold text-slate-700">Production Ready</p>
-              </div>
-           </div>
-           <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <Percent className="w-4 h-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Vat Edge</p>
-                <p className="text-xs font-bold text-slate-700">18% Standard</p>
-              </div>
-           </div>
         </div>
       </div>
     </div>
