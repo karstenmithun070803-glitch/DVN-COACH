@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef } from "react";
 import Link from "next/link";
-import { Search, Printer, Edit, History, ExternalLink, Filter, Calendar, Copy, Trash2, X, Check } from "lucide-react";
+import { Search, Printer, Edit, History, Copy, Trash2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useJobs } from "@/context/JobsContext";
 import { JobCard } from "@/data/mockKanbanData";
@@ -12,18 +12,25 @@ export default function VaultPage() {
   const { jobs, isLoaded, deleteJobPermanently } = useJobs();
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "delivered">("all");
+
   // Printing state
   const [printJob, setPrintJob] = useState<JobCard | null>(null);
 
   const filteredJobs = useMemo(() => {
     return jobs
-      .filter(job => 
-        job.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.jobNo.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      .filter(job => {
+        const matchesSearch =
+          job.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          job.jobNo.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus =
+          statusFilter === "all" ||
+          (statusFilter === "active" && job.status === "active") ||
+          (statusFilter === "delivered" && job.status === "delivered");
+        return matchesSearch && matchesStatus;
+      })
       .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-  }, [jobs, searchQuery]);
+  }, [jobs, searchQuery, statusFilter]);
 
   const handleDelete = (id: string) => {
     deleteJobPermanently(id);
@@ -47,7 +54,7 @@ export default function VaultPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20">
+    <div className="bg-[#F8FAFC] px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Hidden Print Container */}
       {printJob && (
         <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-10 text-black font-sans leading-relaxed">
@@ -107,16 +114,16 @@ export default function VaultPage() {
         </div>
       )}
 
-      {/* Vault Header Area */}
-      <div className="bg-white border-b border-slate-100 sticky top-16 z-30 shadow-sm print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Vault Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
+        <div className="p-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="bg-teal-50 p-2 rounded-lg">
                   <History className="w-5 h-5 text-teal-600" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-[#333333] tracking-tight">The Vault</h1>
+                <h1 className="text-xl font-bold text-[#333333] tracking-tight">The Vault</h1>
               </div>
               <p className="text-slate-500 font-medium max-w-md">
                 Historical archives of all units. Permanent storage and template cloning.
@@ -124,7 +131,7 @@ export default function VaultPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="relative group min-w-[320px]">
+              <div className="relative group min-w-[280px]">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
                 </div>
@@ -137,17 +144,30 @@ export default function VaultPage() {
                 />
               </div>
 
-              <button className="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 px-5 py-3 rounded-2xl text-xs font-bold text-slate-600 transition-all shadow-sm uppercase tracking-wider">
-                <Filter className="w-4 h-4" />
-                Filters
-              </button>
+              {/* Status Filter Tabs */}
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                {(["all", "active", "delivered"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setStatusFilter(f)}
+                    className={cn(
+                      "px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide",
+                      statusFilter === f
+                        ? "bg-white text-slate-800 shadow-sm"
+                        : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    {f === "all" ? "All" : f === "active" ? "Live" : "Delivered"}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Vault Results Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 print:hidden">
+      <main className="print:hidden">
         {filteredJobs.length === 0 ? (
           <div className="bg-white rounded-3xl border-2 border-dashed border-slate-200 py-24 px-4 text-center">
             <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -164,8 +184,10 @@ export default function VaultPage() {
               <div 
                 key={job.id}
                 className={cn(
-                  "bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-teal-100 transition-all group overflow-hidden flex flex-col relative",
-                  job.status === "active" ? "ring-2 ring-teal-500/10" : ""
+                  "bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden flex flex-col relative",
+                  job.status === "active" ? "ring-2 ring-emerald-500/20 hover:border-teal-100" :
+                  job.status === "delivered" ? "ring-2 ring-slate-200 hover:border-slate-200" :
+                  "hover:border-teal-100"
                 )}
               >
                 {/* Delete Trigger */}
@@ -209,8 +231,13 @@ export default function VaultPage() {
                         {job.jobNo}
                       </span>
                       {job.status === "active" && (
-                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
                           Live Now
+                        </span>
+                      )}
+                      {job.status === "delivered" && (
+                        <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded uppercase tracking-[0.1em]">
+                          Delivered
                         </span>
                       )}
                     </div>
@@ -283,8 +310,13 @@ export default function VaultPage() {
           </div>
           <div className="w-px h-4 bg-slate-700"></div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             ACTIVE: {jobs.filter(j => j.status === 'active').length}
+          </div>
+          <div className="w-px h-4 bg-slate-700"></div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+            DELIVERED: {jobs.filter(j => j.status === 'delivered').length}
           </div>
         </div>
       </div>

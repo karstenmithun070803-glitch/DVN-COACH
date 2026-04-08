@@ -13,7 +13,7 @@ import {
   DragOverEvent,
   DragEndEvent,
 } from "@dnd-kit/core";
-import { X, Check, Edit2 } from "lucide-react";
+import { X, Check, Edit2, Truck } from "lucide-react";
 import { cn } from "@/utils/cn";
 import {
   arrayMove,
@@ -32,7 +32,7 @@ interface KanbanBoardProps {
 import { useJobs } from "@/context/JobsContext";
 
 export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
-  const { jobs, moveJob, isLoaded, updateJob } = useJobs();
+  const { jobs, moveJob, isLoaded, updateJob, deliverJob } = useJobs();
   const [activeJob, setActiveJob] = useState<JobCard | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   
@@ -56,8 +56,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
   if (!isLoaded) return null;
 
-  const filteredJobs = jobs.filter(job => 
-    job.status === "active" && (
+  const filteredJobs = jobs.filter(job =>
+    (job.status === "active") && (
       job.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.jobNo.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -97,7 +97,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 h-full pb-10 overflow-x-auto min-h-[600px] mt-6 select-none scrollbar-hide">
+      <div className="flex gap-4 pb-10 overflow-x-auto min-h-[600px] select-none scrollbar-hide">
         {STAGES.map((stage) => (
           <KanbanColumn
             key={stage}
@@ -315,17 +315,31 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                 </div>
              </div>
 
-             <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center">
+             <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center gap-4">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></div>
                    LIVE SYNC ACTIVE
                 </div>
-                <button 
-                  onClick={() => setSelectedJobId(null)}
-                  className="bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-900 transition-all uppercase tracking-wide"
-                >
-                  Done
-                </button>
+                <div className="flex items-center gap-3">
+                  {currentJob.stage === "Final Inspection & Delivery" && (
+                    <button
+                      onClick={() => {
+                        deliverJob(currentJob.id);
+                        setSelectedJobId(null);
+                      }}
+                      className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-teal-600/20 uppercase tracking-wide"
+                    >
+                      <Truck className="w-4 h-4" />
+                      Deliver Vehicle
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedJobId(null)}
+                    className="bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-900 transition-all uppercase tracking-wide"
+                  >
+                    Done
+                  </button>
+                </div>
              </div>
           </div>
         </div>

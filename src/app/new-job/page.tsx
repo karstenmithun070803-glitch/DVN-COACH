@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Check, ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Settings } from "lucide-react";
+import { ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Settings } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/utils/cn";
@@ -183,14 +183,13 @@ export default function NewJobPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAFC] text-[#333333] -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 px-4 sm:px-6 lg:px-8 py-8 font-sans">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Top Action Bar */}
-        <div className="flex flex-wrap justify-between items-center mb-8 gap-4 print:hidden">
-          <h1 className="text-3xl font-semibold tracking-tight text-[#333333]">New Configurator</h1>
+    <div className="bg-[#F8FAFC] text-[#333333] font-sans px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Page Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
+        <div className="p-6 flex flex-wrap justify-between items-center gap-4">
+          <h1 className="text-xl font-bold text-[#333333] tracking-tight">New Configurator</h1>
           <div className="flex gap-4 items-center">
-            
+
             <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
               <button
                 onClick={() => setIsTamil(false)}
@@ -215,31 +214,31 @@ export default function NewJobPage() {
             <label className="flex items-center cursor-pointer gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-100 transition-shadow">
               <span className="font-medium text-[#475569] text-sm">Standard Build</span>
               <div className="relative">
-                <input 
-                  type="checkbox" 
-                  className="sr-only" 
+                <input
+                  type="checkbox"
+                  className="sr-only"
                   checked={isStandardBuild}
-                  onChange={(e) => handleStandardToggle(e.target.checked)} 
+                  onChange={(e) => handleStandardToggle(e.target.checked)}
                 />
                 <div className={cn("block w-10 h-6 rounded-full transition-colors", isStandardBuild ? "bg-teal-500" : "bg-slate-200")}></div>
                 <div className={cn("dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm", isStandardBuild ? "transform translate-x-4" : "")}></div>
               </div>
             </label>
-            
+
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={handlePushToLiveFloor}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg uppercase tracking-wide",
                   currentEditId
                     ? "bg-teal-600 hover:bg-teal-700 text-white shadow-teal-600/20"
-                    : currentCloneId 
-                    ? "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20" 
+                    : currentCloneId
+                    ? "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20"
                     : "bg-slate-800 hover:bg-slate-900 text-white shadow-slate-800/20"
                 )}
               >
-                {currentEditId ? "Update Changes" : 
-                 currentCloneId ? "Save as New Job" : 
+                {currentEditId ? "Update Changes" :
+                 currentCloneId ? "Save as New Job" :
                  "Save & Move to Live Floor"}
               </button>
               <button
@@ -252,6 +251,9 @@ export default function NewJobPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div>
 
         {/* -- PRINT ONLY SPEC SHEET -- */}
         <div className="print-page-container hidden print:block text-black font-sans leading-relaxed absolute top-0 left-0 z-[999]">
@@ -319,7 +321,7 @@ export default function NewJobPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:hidden">
           
           {/* LEFT PANEL: Summary & Active Build View (Sticky) */}
-          <div className="lg:col-span-4 flex flex-col gap-6 sticky top-24 self-start">
+          <div className="lg:col-span-4 flex flex-col gap-6 sticky top-6 self-start">
             
             <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 flex flex-col relative overflow-hidden print:hidden z-10 w-full">
                <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">

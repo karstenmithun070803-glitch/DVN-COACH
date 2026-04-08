@@ -38,10 +38,10 @@ export default function LiveFloorPage() {
   const activeCount = jobs.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-      {/* Kanban Header Area */}
-      <div className="bg-white border-b border-slate-100 sticky top-16 z-30 shadow-sm print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="bg-[#F8FAFC] px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Live Floor Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
+        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-[#333333] tracking-tight">Live Floor</h1>
             <p className="text-[11px] text-teal-600 font-bold uppercase tracking-wider">{activeCount} Active Production Units</p>
@@ -79,11 +79,9 @@ export default function LiveFloorPage() {
       </div>
 
       {/* Main Kanban Content */}
-      <main className="flex-1 overflow-hidden flex flex-col">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 overflow-hidden">
-          <KanbanBoard searchQuery={searchQuery} />
-        </div>
-      </main>
+      <div className="w-full overflow-x-auto">
+        <KanbanBoard searchQuery={searchQuery} />
+      </div>
 
       {/* Quick Job Modal */}
       {isModalOpen && (
@@ -174,8 +172,8 @@ export default function LiveFloorPage() {
         </div>
       )}
 
-      {/* Stats Overlay footer for Owner */}
-      <div className="h-12 bg-white border-t border-slate-100 px-8 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest sticky bottom-0 z-30 print:hidden">
+      {/* Stats footer */}
+      <div className="h-12 bg-white rounded-2xl border border-slate-100 px-6 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest print:hidden">
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-teal-500"></div>

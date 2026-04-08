@@ -9,6 +9,7 @@ interface JobsContextType {
   addJob: (job: JobCard) => void;
   updateJob: (id: string, updates: Partial<JobCard>) => void;
   archiveJob: (id: string) => void;
+  deliverJob: (id: string) => void;
   deleteJobPermanently: (id: string) => void;
   moveJob: (id: string, newStage: ProductionStage) => void;
   getNextJobNumber: () => string;
@@ -65,6 +66,10 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
     updateJob(id, { status: "archived" });
   };
 
+  const deliverJob = (id: string) => {
+    updateJob(id, { status: "delivered", deliveredDate: new Date().toISOString().split("T")[0] });
+  };
+
   const deleteJobPermanently = (id: string) => {
     setJobs((prev) => prev.filter((job) => job.id !== id));
   };
@@ -97,7 +102,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <JobsContext.Provider
-      value={{ jobs, isLoaded, addJob, updateJob, archiveJob, deleteJobPermanently, moveJob, getNextJobNumber }}
+      value={{ jobs, isLoaded, addJob, updateJob, archiveJob, deliverJob, deleteJobPermanently, moveJob, getNextJobNumber }}
     >
       {children}
     </JobsContext.Provider>
