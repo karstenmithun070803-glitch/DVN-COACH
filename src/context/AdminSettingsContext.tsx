@@ -31,6 +31,7 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 const LOCAL_STORAGE_KEY = "dvn-admin-profiles-v1";
 const RENAME_MIGRATION_KEY = "dvn-v3-category-rename"; // Keep: one-time rename is safe as a flag
 const BASELINE_SYNC_KEY = "dvn-v4-baseline-sync"; // One-time forced reset of all standardSelections to STANDARD_VARIATIONS
+const FULL_SYNC_KEY = "dvn-v5-full-moffusil-baseline"; // One-time copy of Moffusil specGroups+standardSelections into all other models
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as any);
@@ -80,6 +81,27 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         localStorage.setItem(BASELINE_SYNC_KEY, "true");
       }
 
+      // ─── One-Time Full Moffusil Baseline Sync (v5) ────────────────────────
+      // Copies Moffusil's current specGroups and standardSelections verbatim
+      // into Town, College, and Staff so Admin Master shows a visually
+      // identical starting state for all models. Silo Rule (structuredClone
+      // in all mutations) ensures independence after this point.
+      const hasFullSynced = localStorage.getItem(FULL_SYNC_KEY);
+      if (!hasFullSynced && currentProfiles["Moffusil"]) {
+        const moffusilProfile = currentProfiles["Moffusil"];
+        const modelsToSync: BaseModels[] = ["Town", "College", "Staff"];
+        modelsToSync.forEach(model => {
+          if (currentProfiles[model]) {
+            currentProfiles[model] = {
+              ...currentProfiles[model],
+              specGroups: structuredClone(moffusilProfile.specGroups),
+              standardSelections: structuredClone(moffusilProfile.standardSelections),
+            };
+          }
+        });
+        localStorage.setItem(FULL_SYNC_KEY, "true");
+      }
+
       // ─── Spec Groups Sync ──────────────────────────────────────────────────
       // Ensure Town/College/Staff have the same spec groups as Moffusil.
       const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
@@ -118,6 +140,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
       currentProfiles = initialProfiles as Record<BaseModels, BusModelProfile>;
       localStorage.setItem(RENAME_MIGRATION_KEY, "true");
+      localStorage.setItem(FULL_SYNC_KEY, "true");
     }
 
     setProfiles(currentProfiles);
