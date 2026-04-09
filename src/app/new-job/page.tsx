@@ -101,15 +101,15 @@ export default function NewJobPage() {
     if (!isLoaded) return 0;
     const profile = profiles[activeModel];
     let total = profile.basePrice;
-    
+
+    const extrasGroup = profile.specGroups.find(g => g.groupName.includes("EXTRAS"));
+    const extrasFieldIds = new Set(extrasGroup?.fields.map(f => f.id) ?? []);
+
     Object.entries(selections).forEach(([key, val]) => {
       const fieldDef = profile.specGroups.flatMap(s => s.fields).find(f => f.name === key);
-      if (fieldDef) {
-        if (fieldDef.id.includes("extra") || fieldDef.id === "art-work" || fieldDef.id === "audio-video" || fieldDef.id === "decorative-lights" || fieldDef.id === "stickers") {
-           if (val === "Yes" && profile.extrasPricing[fieldDef.id]) {
-             total += profile.extrasPricing[fieldDef.id];
-           }
-        }
+      if (fieldDef && extrasFieldIds.has(fieldDef.id) && val === "Yes") {
+        const price = profile.extrasPricing[fieldDef.id];
+        if (price) total += price;
       }
     });
     return total;

@@ -23,6 +23,10 @@ interface AdminContextType {
   removeOption: (model: BaseModels, groupName: string, fieldId: string, option: string) => void;
   setStandardSelection: (model: BaseModels, categoryName: string, option: string) => void;
   updateExtraPrice: (model: BaseModels, itemId: string, price: number) => void;
+  addExtraItem: (model: BaseModels, name: string, price: number) => void;
+  removeExtraItem: (model: BaseModels, fieldId: string) => void;
+  addField: (model: BaseModels, groupName: string, fieldName: string) => void;
+  removeField: (model: BaseModels, groupName: string, fieldId: string) => void;
   isLoaded: boolean;
 }
 
@@ -134,6 +138,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
             "audio-video": 45000,
             "decorative-lights": 25000,
             "stickers": 8000,
+            "bottom-aluminium-sheet-extra": 0,
+            "black-cobra-plywood-extra": 0,
           },
         };
       });
@@ -224,6 +230,59 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     });
   };
 
+  const addExtraItem = (model: BaseModels, name: string, price: number) => {
+    const id = name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    setProfiles(prev => {
+      const targetProfile = structuredClone(prev[model]);
+      const extrasGroup = targetProfile.specGroups.find((g: any) => g.groupName.includes("EXTRAS"));
+      if (extrasGroup && !extrasGroup.fields.some((f: any) => f.id === id)) {
+        extrasGroup.fields = [...extrasGroup.fields, { id, name, options: ["Yes", "No"] }];
+      }
+      targetProfile.extrasPricing = { ...targetProfile.extrasPricing, [id]: price };
+      return { ...prev, [model]: targetProfile };
+    });
+  };
+
+  const addField = (model: BaseModels, groupName: string, fieldName: string) => {
+    const id = fieldName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    setProfiles(prev => {
+      const targetProfile = structuredClone(prev[model]);
+      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
+      if (group && !group.fields.some((f: any) => f.id === id)) {
+        group.fields = [...group.fields, { id, name: fieldName.trim(), options: [] }];
+      }
+      return { ...prev, [model]: targetProfile };
+    });
+  };
+
+  const removeField = (model: BaseModels, groupName: string, fieldId: string) => {
+    setProfiles(prev => {
+      const targetProfile = structuredClone(prev[model]);
+      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
+      if (group) {
+        const field = group.fields.find((f: any) => f.id === fieldId);
+        if (field) {
+          delete targetProfile.standardSelections[field.name];
+        }
+        group.fields = group.fields.filter((f: any) => f.id !== fieldId);
+      }
+      return { ...prev, [model]: targetProfile };
+    });
+  };
+
+  const removeExtraItem = (model: BaseModels, fieldId: string) => {
+    setProfiles(prev => {
+      const targetProfile = structuredClone(prev[model]);
+      const extrasGroup = targetProfile.specGroups.find((g: any) => g.groupName.includes("EXTRAS"));
+      if (extrasGroup) {
+        extrasGroup.fields = extrasGroup.fields.filter((f: any) => f.id !== fieldId);
+      }
+      const { [fieldId]: _removed, ...remainingPricing } = targetProfile.extrasPricing;
+      targetProfile.extrasPricing = remainingPricing;
+      return { ...prev, [model]: targetProfile };
+    });
+  };
+
   return (
     <AdminContext.Provider value={{
       profiles,
@@ -232,6 +291,10 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       removeOption,
       setStandardSelection,
       updateExtraPrice,
+      addExtraItem,
+      removeExtraItem,
+      addField,
+      removeField,
       isLoaded
     }}>
       {children}

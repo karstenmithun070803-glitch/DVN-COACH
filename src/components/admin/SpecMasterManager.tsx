@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels, SpecCategoryGroup } from "@/data/specs";
-import { ChevronDown, ChevronUp, Plus, Trash2, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Star, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { t } from "@/data/translation";
 
@@ -14,22 +14,13 @@ interface SpecMasterManagerProps {
 }
 
 export function SpecMasterManager({ model, specGroups, standardSelections }: SpecMasterManagerProps) {
-  const { addOption, removeOption, setStandardSelection } = useAdminSettings();
+  const { addOption, removeOption, setStandardSelection, addField, removeField } = useAdminSettings();
   const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [addingToField, setAddingToField] = useState<string | null>(null);
-
-  // Smart Navigation: Auto-scroll to header when section expands
-  useEffect(() => {
-    if (activeAccordion) {
-      setTimeout(() => {
-        const el = document.getElementById(`admin-section-${activeAccordion}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
-  }, [activeAccordion]);
+  // Adding a new field (row) to a group
+  const [addingFieldToGroup, setAddingFieldToGroup] = useState<string | null>(null);
+  const [newFieldName, setNewFieldName] = useState("");
 
   const handleAddOption = (groupName: string, fieldId: string) => {
     if (newOptionValue.trim()) {
@@ -44,11 +35,19 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
     setStandardSelection(model, categoryName, isCurrentlyActive ? "" : option);
   };
 
+  const handleAddField = (groupName: string) => {
+    if (newFieldName.trim()) {
+      addField(model, groupName, newFieldName.trim());
+      setNewFieldName("");
+      setAddingFieldToGroup(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {specGroups.map((group) => (
-        <div 
-          key={group.groupName} 
+        <div
+          key={group.groupName}
           id={`admin-section-${group.groupName}`}
           className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden scroll-mt-24"
         >
@@ -76,19 +75,28 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
                 <div key={field.id} className="space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-50 pb-2">
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">{t(field.name, false)}</h4>
-                    <button 
-                      onClick={() => setAddingToField(addingToField === field.id ? null : field.id)}
-                      className="text-teal-600 hover:text-teal-700 p-1 rounded-md hover:bg-teal-50 transition-all"
-                      title="Add New Option"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setAddingToField(addingToField === field.id ? null : field.id)}
+                        className="text-teal-600 hover:text-teal-700 p-1 rounded-md hover:bg-teal-50 transition-all"
+                        title="Add New Option"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => removeField(model, group.groupName, field.id)}
+                        className="text-slate-300 hover:text-rose-500 p-1 rounded-md hover:bg-rose-50 transition-all"
+                        title="Delete Spec Row"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Add Option Input */}
                   {addingToField === field.id && (
                     <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
-                      <input 
+                      <input
                         type="text"
                         autoFocus
                         value={newOptionValue}
@@ -97,7 +105,7 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
                         className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                         placeholder="Type new option name..."
                       />
-                      <button 
+                      <button
                         onClick={() => handleAddOption(group.groupName, field.id)}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all"
                       >
@@ -109,14 +117,14 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
                   <div className="flex flex-wrap gap-3">
                     {field.options.map((opt) => {
                       const isDefault = standardSelections[field.name] === opt;
-                      
+
                       return (
-                        <div 
+                        <div
                           key={opt}
                           className={cn(
                             "group px-4 py-3 rounded-xl border flex items-center gap-3 transition-all",
-                            isDefault 
-                              ? "bg-teal-600 border-teal-600 shadow-lg shadow-teal-600/20" 
+                            isDefault
+                              ? "bg-teal-600 border-teal-600 shadow-lg shadow-teal-600/20"
                               : "bg-white border-slate-200 hover:border-teal-300"
                           )}
                         >
@@ -128,20 +136,20 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
                           </span>
 
                           <div className="flex items-center border-l border-slate-100 pl-3 ml-1 group-hover:border-teal-400 transition-colors">
-                            <button 
+                            <button
                               onClick={() => handleToggleSelection(field.name, opt)}
                               className={cn(
                                 "p-1.5 rounded-md transition-all",
-                                isDefault 
-                                  ? "bg-teal-500/50 text-white" 
+                                isDefault
+                                  ? "bg-teal-500/50 text-white"
                                   : "text-slate-300 hover:text-teal-600 hover:bg-teal-50"
                               )}
                               title={isDefault ? "Selected" : "Set as Standard"}
                             >
                               <Star className={cn("w-3.5 h-3.5", isDefault && "fill-current")} />
                             </button>
-                            
-                            <button 
+
+                            <button
                               onClick={() => removeOption(model, group.groupName, field.id, opt)}
                               className={cn(
                                 "p-1.5 rounded-md transition-all",
@@ -157,9 +165,55 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
                         </div>
                       );
                     })}
+
+                    {field.options.length === 0 && (
+                      <p className="text-xs text-slate-400 italic">No options yet — click + to add the first one.</p>
+                    )}
                   </div>
                 </div>
               ))}
+
+              {/* Add New Spec Row */}
+              <div className="border-t border-slate-100 pt-6">
+                {addingFieldToGroup === group.groupName ? (
+                  <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddField(group.groupName);
+                        if (e.key === "Escape") { setAddingFieldToGroup(null); setNewFieldName(""); }
+                      }}
+                      className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                      placeholder="New spec name (e.g. Tyre Type)"
+                    />
+                    <button
+                      onClick={() => handleAddField(group.groupName)}
+                      className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => { setAddingFieldToGroup(null); setNewFieldName(""); }}
+                      className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setAddingFieldToGroup(group.groupName)}
+                    className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-teal-600 transition-colors group"
+                  >
+                    <div className="w-6 h-6 rounded-lg border-2 border-dashed border-slate-200 group-hover:border-teal-400 flex items-center justify-center transition-colors">
+                      <Plus className="w-3.5 h-3.5" />
+                    </div>
+                    Add New Spec
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
