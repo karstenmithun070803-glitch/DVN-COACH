@@ -14,10 +14,20 @@ export interface JobCard {
   chassisNo: string;
   engineNo: string;
   mobileNo?: string;
+  address?: string;
   model: BaseModels;
   stage: ProductionStage;
   startDate: string;
-  selections?: Record<string, string>;
+  selections?: Record<string, string[]>;
+  fieldNotes?: Record<string, string>;
+  seatingCapacity?: {
+    rhSide3Pass: number;
+    rhSide2Plus1: number;
+    lhSide2Pass: number;
+    platform2Pass: number;
+    platform1Plus1: number;
+    platform1Pass: number;
+  };
   totalEstimate?: number;
   status: "active" | "delivered" | "archived";
   deliveredDate?: string;

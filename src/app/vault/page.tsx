@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Search, Printer, Edit, History, Copy, Trash2, X, Truck } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useJobs } from "@/context/JobsContext";
+import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { JobCard } from "@/data/mockKanbanData";
 import { t } from "@/data/translation";
 
 export default function VaultPage() {
   const { jobs, isLoaded, deleteJobPermanently, deliverJob } = useJobs();
+  const { profiles } = useAdminSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "delivered">("all");
@@ -30,7 +32,13 @@ export default function VaultPage() {
           (statusFilter === "delivered" && job.status === "delivered");
         return matchesSearch && matchesStatus;
       })
-      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+      .sort((a, b) => {
+        // Sort by creation time (timestamp embedded in id: "job-{Date.now()}")
+        // Falls back to 0 for legacy mock IDs — they maintain stable relative order
+        const tsA = parseInt(a.id.replace("job-", "")) || 0;
+        const tsB = parseInt(b.id.replace("job-", "")) || 0;
+        return tsB - tsA;
+      });
   }, [jobs, searchQuery, statusFilter]);
 
   const handleDelete = (id: string) => {
@@ -61,63 +69,119 @@ export default function VaultPage() {
 
   return (
     <div className="bg-[#F8FAFC] px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Hidden Print Container */}
+      {/* Print Container */}
       {printJob && (
-        <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-10 text-black font-sans leading-relaxed">
-           <div className="text-center w-full block mb-8">
-             <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
-             <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
-             <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
-           </div>
+        <>
+          <style>{`
+            @media print {
+              @page { margin: 1.5cm 1cm 2cm 1cm; }
+              @page :first { margin-top: 0; }
+              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; border-top: 1px solid #374151; padding-top: 6pt; } }
+            }
+          `}</style>
 
-           <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
-             <div className="flex flex-col gap-5 w-1/2">
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Customer Name:</strong>
-                 <div className="border-b border-black flex-grow font-bold px-2">{printJob.customerName}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Mobile No:</strong>
-                 <div className="border-b border-black flex-grow font-bold px-2">{printJob.mobileNo}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Date:</strong>
-                 <div className="border-b border-black flex-grow font-bold px-2">{printJob.startDate}</div>
-               </div>
-             </div>
-             <div className="flex flex-col gap-5 w-1/2">
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Job No:</strong>
-                 <div className="border-b border-black flex-grow font-bold px-2">{printJob.jobNo}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Chassis No:</strong>
-                 <div className="border-b border-black flex-grow font-bold px-2">{printJob.chassisNo}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Engine No:</strong>
-                 <div className="border-b border-black flex-grow font-bold px-2">{printJob.engineNo}</div>
-               </div>
-             </div>
-           </div>
+          <div className="hidden print:block bg-white text-black font-sans">
+            <div className="p-10 pb-8">
+              {/* Letterhead */}
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
+                <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
+                <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
+              </div>
 
-           <h3 className="text-xl font-bold uppercase mb-6 text-slate-900">
-             Blueprint: {printJob.model} Series
-           </h3>
+              {/* Customer Info */}
+              <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
+                <div className="flex flex-col gap-5 w-1/2">
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Customer Name:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{printJob.customerName}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Mobile No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{printJob.mobileNo}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Date:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{printJob.startDate}</div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-5 w-1/2">
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Job No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{printJob.jobNo}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Chassis No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{printJob.chassisNo}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Engine No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{printJob.engineNo}</div>
+                  </div>
+                </div>
+              </div>
 
-           <div className="columns-2 gap-16 text-[15px]">
-             {printJob.selections && Object.entries(printJob.selections).map(([key, val]) => (
-               <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5 flex justify-between items-end">
-                  <span className="text-slate-600 uppercase font-semibold text-xs tracking-wider">
-                    {t(key, false)}
-                  </span>
-                  <span className="font-bold text-slate-900 text-right">
-                    {t(val, false)}
-                  </span>
-               </div>
-             ))}
-           </div>
-        </div>
+              {/* Blueprint Heading */}
+              <h3 className="text-xl font-bold uppercase mb-6 text-slate-900">
+                Blueprint: {printJob.model} Series
+              </h3>
+
+              {/* Specifications */}
+              <div className="columns-2 gap-16 text-[14px]">
+                {printJob.selections && (() => {
+                  const specFields = profiles[printJob.model]?.specGroups.flatMap(g => g.fields) ?? [];
+                  const nameToId = Object.fromEntries(specFields.map(f => [f.name, f.id]));
+                  return Object.entries(printJob.selections).map(([key, val]) => {
+                    const note = printJob.fieldNotes?.[nameToId[key]];
+                    const vals = Array.isArray(val) ? val : [val];
+                    return (
+                      <div key={key} className="break-inside-avoid mb-3 border-b border-slate-200 pb-1.5">
+                        <div className="flex justify-between items-end">
+                          <span className="text-slate-600 uppercase font-semibold text-xs tracking-wider">{t(key, false)}</span>
+                          <span className="font-bold text-slate-900 text-right">{vals.map(v => t(v, false)).join(", ")}</span>
+                        </div>
+                        {note && (
+                          <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* Extras & Terms */}
+              <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">
+                <p className="text-sm leading-relaxed">
+                  <span className="underline font-semibold">Extras:</span>{" "}
+                  1. Art Work &nbsp;&nbsp; 2. Audio &amp; Videos &nbsp;&nbsp; 3. Decorative Lights &nbsp;&nbsp; 4. Stickers
+                </p>
+                <div className="text-sm mt-3">
+                  <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
+                  <ul className="mt-1 space-y-1 list-none">
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Signature Block */}
+              <div className="mt-12 grid grid-cols-2 break-inside-avoid">
+                <div>
+                  <p className="text-sm">Customer Sign</p>
+                  <div style={{ height: "50px" }} />
+                  <p className="text-sm">Date:</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm">for Durga Industries</p>
+                  <div style={{ height: "50px" }} />
+                  <p className="text-sm">Manager</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Vault Header */}

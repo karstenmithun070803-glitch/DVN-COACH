@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { 
-  SPEC_CONFIGURATOR, 
-  BUS_MODELS_BASE, 
-  STANDARD_VARIATIONS, 
+import {
+  SPEC_CONFIGURATOR,
+  BUS_MODELS_BASE,
+  STANDARD_VARIATIONS,
   BaseModels,
   SpecCategoryGroup
 } from "@/data/specs";
+import { arrayMove } from "@dnd-kit/sortable";
 
 export interface BusModelProfile {
   basePrice: number;
@@ -27,6 +28,12 @@ interface AdminContextType {
   removeExtraItem: (model: BaseModels, fieldId: string) => void;
   addField: (model: BaseModels, groupName: string, fieldName: string) => void;
   removeField: (model: BaseModels, groupName: string, fieldId: string) => void;
+  reorderGroups: (model: BaseModels, fromIndex: number, toIndex: number) => void;
+  reorderFields: (model: BaseModels, groupName: string, fromIndex: number, toIndex: number) => void;
+  reorderOptions: (model: BaseModels, groupName: string, fieldId: string, fromIndex: number, toIndex: number) => void;
+  renameField: (model: BaseModels, groupName: string, fieldId: string, newName: string) => void;
+  renameOption: (model: BaseModels, groupName: string, fieldId: string, oldOpt: string, newOpt: string) => void;
+  toggleFieldNote: (model: BaseModels, groupName: string, fieldId: string) => void;
   isLoaded: boolean;
 }
 
@@ -243,6 +250,72 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     });
   };
 
+  const reorderGroups = (model: BaseModels, fromIndex: number, toIndex: number) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      p.specGroups = arrayMove(p.specGroups, fromIndex, toIndex);
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const reorderFields = (model: BaseModels, groupName: string, fromIndex: number, toIndex: number) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      const g = p.specGroups.find((g: any) => g.groupName === groupName);
+      if (g) g.fields = arrayMove(g.fields, fromIndex, toIndex);
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const reorderOptions = (model: BaseModels, groupName: string, fieldId: string, fromIndex: number, toIndex: number) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      const g = p.specGroups.find((g: any) => g.groupName === groupName);
+      const f = g?.fields.find((f: any) => f.id === fieldId);
+      if (f) f.options = arrayMove(f.options, fromIndex, toIndex);
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const renameField = (model: BaseModels, groupName: string, fieldId: string, newName: string) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      const g = p.specGroups.find((g: any) => g.groupName === groupName);
+      const f = g?.fields.find((f: any) => f.id === fieldId);
+      if (f) {
+        if (p.standardSelections[f.name] !== undefined) {
+          p.standardSelections[newName] = p.standardSelections[f.name];
+          delete p.standardSelections[f.name];
+        }
+        f.name = newName;
+      }
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const renameOption = (model: BaseModels, groupName: string, fieldId: string, oldOpt: string, newOpt: string) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      const g = p.specGroups.find((g: any) => g.groupName === groupName);
+      const f = g?.fields.find((f: any) => f.id === fieldId);
+      if (f) {
+        f.options = f.options.map((o: string) => o === oldOpt ? newOpt : o);
+        if (p.standardSelections[f.name] === oldOpt) p.standardSelections[f.name] = newOpt;
+      }
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const toggleFieldNote = (model: BaseModels, groupName: string, fieldId: string) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      const g = p.specGroups.find((g: any) => g.groupName === groupName);
+      const f = g?.fields.find((f: any) => f.id === fieldId);
+      if (f) f.noteEnabled = !f.noteEnabled;
+      return { ...prev, [model]: p };
+    });
+  };
+
   const addField = (model: BaseModels, groupName: string, fieldName: string) => {
     const id = fieldName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     setProfiles(prev => {
@@ -295,6 +368,12 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       removeExtraItem,
       addField,
       removeField,
+      reorderGroups,
+      reorderFields,
+      reorderOptions,
+      renameField,
+      renameOption,
+      toggleFieldNote,
       isLoaded
     }}>
       {children}

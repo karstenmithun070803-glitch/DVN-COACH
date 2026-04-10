@@ -1,113 +1,285 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Settings } from "lucide-react";
+import { ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Settings, MapPin, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/utils/cn";
-import { 
-  BaseModels, 
-} from "@/data/specs";
+import { BaseModels } from "@/data/specs";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { useJobs } from "@/context/JobsContext";
 import { t } from "@/data/translation";
+
+const DRAFT_NEW_KEY = "dvn-new-job-draft";
+const editDraftKey = (id: string) => `dvn-edit-draft-${id}`;
+
+function wrapStandard(std: Record<string, string>): Record<string, string[]> {
+  return Object.fromEntries(Object.entries(std).map(([k, v]) => [k, [v]]));
+}
+
+const DEFAULT_SEATING = {
+  rhSide3Pass: 0,
+  rhSide2Plus1: 0,
+  lhSide2Pass: 0,
+  platform2Pass: 0,
+  platform1Plus1: 0,
+  platform1Pass: 0,
+};
+
+const DEFAULT_BASIC_INFO = {
+  customerName: "",
+  jobNo: "",
+  mobileNo: "",
+  address: "",
+  chassisNo: "",
+  date: new Date().toISOString().split("T")[0],
+  engineNo: ""
+};
 
 export default function NewJobPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("editId");
   const cloneId = searchParams.get("cloneId");
-  
+
   const { profiles, isLoaded } = useAdminSettings();
   const { addJob, updateJob, jobs, getNextJobNumber } = useJobs();
-  
+
   const [activeModel, setActiveModel] = useState<BaseModels>("Town");
-  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [fieldNotes, setFieldNotes] = useState<Record<string, string>>({});
   const [activeSection, setActiveSection] = useState<string>("CHASSIS");
   const [currentEditId, setCurrentEditId] = useState<string | null>(null);
   const [currentCloneId, setCurrentCloneId] = useState<string | null>(null);
-  
   const [isTamil, setIsTamil] = useState(false);
   const [isStandardBuild, setIsStandardBuild] = useState(true);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [showLiveModal, setShowLiveModal] = useState(false);
+  const [basicInfo, setBasicInfo] = useState(DEFAULT_BASIC_INFO);
+  const [seating, setSeating] = useState(DEFAULT_SEATING);
 
-  // Basic Information State (Single Source of Truth)
-  const [basicInfo, setBasicInfo] = useState({
-    customerName: "",
-    jobNo: "",
-    mobileNo: "",
-    chassisNo: "",
-    date: new Date().toISOString().split("T")[0],
-    engineNo: ""
-  });
+  // isHydrated is STATE (not ref) so the persist effect only fires on the render
+  // AFTER hydration — by which point all setState calls from hydration are applied.
+  // Using a ref here causes the race: persist fires same-cycle and reads stale initial values.
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Hydration Logic: Load existing job if editId or cloneId is provided
+  // ─── Exit edit/clone when user clicks "New Job" nav link ──────────────────
+  // URL transitions from /new-job?editId=xxx → /new-job without a remount.
+  // Directly reset all form state to a clean slate here instead of re-running
+  // hydration (which would load DRAFT_NEW_KEY and restore the old new-job draft).
+  // localStorage is intentionally left untouched.
   useEffect(() => {
-    if (isLoaded && (editId || cloneId) && jobs.length > 0) {
-      const sourceId = editId || cloneId;
-      const existingJob = jobs.find(j => j.id === sourceId);
-      
-      if (existingJob) {
-        if (editId) setCurrentEditId(existingJob.id);
-        if (cloneId) setCurrentCloneId(existingJob.id);
-        
-        setActiveModel(existingJob.model);
-        
-        // Conditional Reset for Clones vs Exact Copy for Edits
-        setBasicInfo({
-          customerName: existingJob.customerName || "",
-          jobNo: cloneId ? getNextJobNumber() : (existingJob.jobNo || ""),
-          mobileNo: existingJob.mobileNo || "",
-          chassisNo: cloneId ? "" : (existingJob.chassisNo || ""),
-          engineNo: cloneId ? "" : (existingJob.engineNo || ""),
-          date: cloneId ? new Date().toISOString().split("T")[0] : (existingJob.startDate || new Date().toISOString().split("T")[0]),
-        });
-        
-        if (existingJob.selections) {
-          setSelections(existingJob.selections);
-          setIsStandardBuild(false); 
-        }
+    if (isHydrated && !editId && !cloneId && (currentEditId || currentCloneId)) {
+      setCurrentEditId(null);
+      setCurrentCloneId(null);
+      setActiveModel("Town");
+      setBasicInfo({ ...DEFAULT_BASIC_INFO, jobNo: getNextJobNumber() });
+      setSelections(wrapStandard(profiles["Town"].standardSelections));
+      setFieldNotes({});
+      setSeating(DEFAULT_SEATING);
+      setIsStandardBuild(true);
+      // Keep isHydrated true — we don't want the hydration effect to run again
+    }
+  }, [editId, cloneId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Hydration ────────────────────────────────────────────────────────────
+  // Runs when: AdminSettings loaded, jobs available, or not yet hydrated.
+  // "if (isHydrated) return" ensures this only runs to completion once.
+  useEffect(() => {
+    if (!isLoaded || isHydrated) return;
+
+    if (editId) {
+      // Try persisted mid-edit draft first
+      const saved = localStorage.getItem(editDraftKey(editId));
+      if (saved) {
+        const draft = JSON.parse(saved);
+        setCurrentEditId(editId);
+        setActiveModel(draft.activeModel ?? "Town");
+        setBasicInfo({ ...DEFAULT_BASIC_INFO, ...draft.basicInfo });
+        setSelections(draft.selections ?? {});
+        setFieldNotes(draft.fieldNotes ?? {});
+        setSeating({ ...DEFAULT_SEATING, ...(draft.seating ?? {}) });
+        setIsStandardBuild(false);
+        setIsHydrated(true);
+        return;
       }
+      // Fall back to job record — wait if jobs haven't loaded yet
+      const job = jobs.find(j => j.id === editId);
+      if (!job) return; // jobs still loading — effect will re-run when jobs changes
+      setCurrentEditId(job.id);
+      setActiveModel(job.model);
+      setBasicInfo({
+        customerName: job.customerName || "",
+        jobNo: job.jobNo || "",
+        mobileNo: job.mobileNo || "",
+        address: job.address || "",
+        chassisNo: job.chassisNo || "",
+        engineNo: job.engineNo || "",
+        date: job.startDate || new Date().toISOString().split("T")[0],
+      });
+      if (job.selections) {
+        const normalised = Object.fromEntries(
+          Object.entries(job.selections).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
+        );
+        setSelections(normalised);
+      }
+      if (job.fieldNotes) setFieldNotes(job.fieldNotes);
+      if (job.seatingCapacity) setSeating(job.seatingCapacity);
+      setIsStandardBuild(false);
+      setIsHydrated(true);
+      return;
     }
-  }, [isLoaded, editId, cloneId, jobs, getNextJobNumber]);
 
-  // Automated numbering for brand NEW jobs (not clone/edit)
-  useEffect(() => {
-    if (isLoaded && !editId && !cloneId && basicInfo.jobNo === "") {
+    if (cloneId) {
+      const job = jobs.find(j => j.id === cloneId);
+      if (!job) return; // wait for jobs
+      setCurrentCloneId(job.id);
+      setActiveModel(job.model);
+      setBasicInfo({
+        customerName: job.customerName || "",
+        jobNo: getNextJobNumber(),
+        mobileNo: job.mobileNo || "",
+        address: "",
+        chassisNo: "",
+        engineNo: "",
+        date: new Date().toISOString().split("T")[0],
+      });
+      if (job.selections) {
+        const normalised = Object.fromEntries(
+          Object.entries(job.selections).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
+        );
+        setSelections(normalised);
+      }
+      setIsStandardBuild(false);
+      setIsHydrated(true);
+      return;
+    }
+
+    // New job — restore from draft if available
+    const saved = localStorage.getItem(DRAFT_NEW_KEY);
+    if (saved) {
+      const draft = JSON.parse(saved);
+      setActiveModel(draft.activeModel ?? "Town");
+      setBasicInfo({ ...DEFAULT_BASIC_INFO, ...draft.basicInfo });
+      setSelections(draft.selections ?? {});
+      setFieldNotes(draft.fieldNotes ?? {});
+      setSeating({ ...DEFAULT_SEATING, ...(draft.seating ?? {}) });
+      setIsStandardBuild(draft.isStandardBuild ?? true);
+    } else {
+      // Brand new job with no draft
       setBasicInfo(prev => ({ ...prev, jobNo: getNextJobNumber() }));
+      setSelections(wrapStandard(profiles["Town"].standardSelections));
     }
-  }, [isLoaded, editId, cloneId, getNextJobNumber, basicInfo.jobNo]);
+    setIsHydrated(true);
+  // jobs (not jobs.length) so effect re-runs when the array reference changes (new load)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isHydrated, jobs, editId, cloneId]);
 
-  // Initialize selections once profiles are loaded (only for brand NEW jobs)
+  // Apply standard selections when user changes the model manually (after hydration)
   useEffect(() => {
-    if (isLoaded && isStandardBuild && !currentEditId && !currentCloneId) {
-      setSelections(profiles[activeModel].standardSelections);
+    if (!isHydrated) return;
+    if (isStandardBuild && !currentEditId && !currentCloneId) {
+      setSelections(wrapStandard(profiles[activeModel].standardSelections));
     }
-  }, [isLoaded, activeModel, isStandardBuild, profiles, currentEditId, currentCloneId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModel]);
 
+  // ─── Persist draft ────────────────────────────────────────────────────────
+  // isHydrated being STATE (not ref) means this effect only fires on the render
+  // AFTER hydration completes — so it always sees the correct hydrated values.
+  useEffect(() => {
+    if (!isHydrated) return;
+    const draft = { basicInfo, activeModel, selections, fieldNotes, seating, isStandardBuild };
+    if (editId) {
+      localStorage.setItem(editDraftKey(editId), JSON.stringify(draft));
+    } else if (!cloneId) {
+      localStorage.setItem(DRAFT_NEW_KEY, JSON.stringify(draft));
+    }
+  }, [isHydrated, basicInfo, activeModel, selections, fieldNotes, seating, isStandardBuild, editId, cloneId]);
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
   const handleStandardToggle = (checked: boolean) => {
     setIsStandardBuild(checked);
-    if (checked && isLoaded) {
-      setSelections(profiles[activeModel].standardSelections);
+    if (checked) {
+      setSelections(wrapStandard(profiles[activeModel].standardSelections));
     } else {
-      setSelections({}); 
+      setSelections({});
     }
   };
 
   const handleModelSelect = (model: BaseModels) => {
     setActiveModel(model);
+    if (isStandardBuild) {
+      setSelections(wrapStandard(profiles[model].standardSelections));
+    }
   };
 
+  const handleSelect = (fieldName: string, value: string) => {
+    setIsStandardBuild(false);
+    setSelections(prev => {
+      const current = prev[fieldName] ?? [];
+      const already = current.includes(value);
+      const next = already ? current.filter(v => v !== value) : [...current, value];
+      if (next.length === 0) {
+        return Object.fromEntries(Object.entries(prev).filter(([k]) => k !== fieldName));
+      }
+      return { ...prev, [fieldName]: next };
+    });
+  };
+
+  const handleClear = () => {
+    localStorage.removeItem(DRAFT_NEW_KEY);
+    const nextJobNo = getNextJobNumber();
+    setBasicInfo({ ...DEFAULT_BASIC_INFO, jobNo: nextJobNo });
+    setSelections(wrapStandard(profiles[activeModel].standardSelections));
+    setFieldNotes({});
+    setSeating(DEFAULT_SEATING);
+    setIsStandardBuild(true);
+    setShowClearModal(false);
+  };
+
+  const handlePushToLiveFloor = () => {
+    const jobData = {
+      customerName: basicInfo.customerName || "New Customer",
+      jobNo: basicInfo.jobNo || getNextJobNumber(),
+      chassisNo: basicInfo.chassisNo || "",
+      engineNo: basicInfo.engineNo || "",
+      mobileNo: basicInfo.mobileNo,
+      address: basicInfo.address || undefined,
+      model: activeModel,
+      startDate: basicInfo.date,
+      selections: { ...selections },
+      fieldNotes: Object.keys(fieldNotes).length > 0 ? { ...fieldNotes } : undefined,
+      seatingCapacity: Object.values(seating).some(v => v > 0) ? { ...seating } : undefined,
+      totalEstimate: currentEstimate
+    };
+
+    if (currentEditId) {
+      updateJob(currentEditId, jobData);
+      localStorage.removeItem(editDraftKey(currentEditId));
+      router.push("/vault");
+    } else {
+      addJob({
+        id: `job-${Date.now()}`,
+        ...jobData,
+        stage: "Chassis Arrival" as const,
+        status: "active" as const,
+      });
+      localStorage.removeItem(DRAFT_NEW_KEY);
+      router.push("/vault");
+    }
+  };
+
+  // ─── Estimate ─────────────────────────────────────────────────────────────
   const currentEstimate = useMemo(() => {
     if (!isLoaded) return 0;
     const profile = profiles[activeModel];
     let total = profile.basePrice;
-
     const extrasGroup = profile.specGroups.find(g => g.groupName.includes("EXTRAS"));
     const extrasFieldIds = new Set(extrasGroup?.fields.map(f => f.id) ?? []);
-
-    Object.entries(selections).forEach(([key, val]) => {
+    Object.entries(selections).forEach(([key, vals]) => {
       const fieldDef = profile.specGroups.flatMap(s => s.fields).find(f => f.name === key);
-      if (fieldDef && extrasFieldIds.has(fieldDef.id) && val === "Yes") {
+      if (fieldDef && extrasFieldIds.has(fieldDef.id) && vals.includes("Yes")) {
         const price = profile.extrasPricing[fieldDef.id];
         if (price) total += price;
       }
@@ -129,66 +301,78 @@ export default function NewJobPage() {
   const handleSectionToggle = (sectionName: string) => {
     const isOpening = activeSection !== sectionName;
     setActiveSection(isOpening ? sectionName : "");
-    
     if (isOpening) {
       setTimeout(() => {
         const el = document.getElementById(`section-${sectionName}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     }
   };
 
-  const handleSelect = (fieldId: string, value: string) => {
-    setIsStandardBuild(false);
-    setSelections(prev => {
-      const isAlreadySelected = prev[fieldId] === value;
-      if (isAlreadySelected) {
-        const newSelections = { ...prev };
-        delete newSelections[fieldId];
-        return newSelections;
-      }
-      return { ...prev, [fieldId]: value };
-    });
-  };
-
-  const handlePushToLiveFloor = () => {
-    const jobData = {
-      customerName: basicInfo.customerName || "New Customer",
-      jobNo: basicInfo.jobNo || getNextJobNumber(),
-      chassisNo: basicInfo.chassisNo || "",
-      engineNo: basicInfo.engineNo || "",
-      mobileNo: basicInfo.mobileNo,
-      model: activeModel,
-      startDate: basicInfo.date,
-      selections: { ...selections },
-      totalEstimate: currentEstimate
-    };
-
-    if (currentEditId) {
-      // Fix mistakes in original record — stay in Vault
-      updateJob(currentEditId, jobData);
-      router.push("/vault");
-    } else {
-      // Clone or New Job — push to Vault so user sees the new entry
-      addJob({
-        id: `job-${Date.now()}`,
-        ...jobData,
-        stage: "Chassis Arrival",
-        status: "active"
-      } as any);
-      router.push("/vault");
-    }
-  };
+  const isNewJob = !editId && !cloneId;
 
   return (
     <div className="bg-[#F8FAFC] text-[#333333] font-sans px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+      {/* Clear confirmation modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold text-slate-800 mb-3">Clear this entry?</h2>
+            <p className="text-sm text-slate-500 mb-6">Are you sure you want to clear this entry? This will delete all typed information.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowClearModal(false)}
+                className="px-5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClear}
+                className="px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Spec modal */}
+      {showLiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 print:hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-800">Live Specifications — {activeModel}</h2>
+              <button onClick={() => setShowLiveModal(false)} className="text-slate-400 hover:text-slate-700 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6">
+              {Object.keys(selections).length === 0 ? (
+                <p className="text-sm text-slate-400 italic text-center py-8">No specifications selected yet.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                  {Object.entries(selections).map(([key, vals]) => (
+                    <div key={key} className="flex justify-between items-start border-b border-slate-100 py-2">
+                      <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">{key}</span>
+                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
         <div className="p-6 flex flex-wrap justify-between items-center gap-4">
-          <h1 className="text-xl font-bold text-[#333333] tracking-tight">New Configurator</h1>
-          <div className="flex gap-4 items-center">
+          <h1 className="text-xl font-bold text-[#333333] tracking-tight">
+            {currentEditId ? "Edit Job" : currentCloneId ? "Clone & Edit" : "New Configurator"}
+          </h1>
+          <div className="flex gap-4 items-center flex-wrap">
 
             <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
               <button
@@ -210,6 +394,15 @@ export default function NewJobPage() {
                 தமிழ்
               </button>
             </div>
+
+            {isNewJob && (
+              <button
+                onClick={() => setShowClearModal(true)}
+                className="px-4 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-lg text-sm font-medium transition-all"
+              >
+                Clear
+              </button>
+            )}
 
             <label className="flex items-center cursor-pointer gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-100 transition-shadow">
               <span className="font-medium text-[#475569] text-sm">Standard Build</span>
@@ -239,7 +432,7 @@ export default function NewJobPage() {
               >
                 {currentEditId ? "Update Changes" :
                  currentCloneId ? "Save as New Job" :
-                 "Save & Move to Live Floor"}
+                 "Create as a New Job"}
               </button>
               <button
                 onClick={() => window.print()}
@@ -256,139 +449,241 @@ export default function NewJobPage() {
       <div>
 
         {/* -- PRINT ONLY SPEC SHEET -- */}
-        <div className="print-page-container hidden print:block text-black font-sans leading-relaxed absolute top-0 left-0 z-[999]">
-           <div className="text-center w-full block mb-8">
-             <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
-             <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
-             <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
-           </div>
-             
-           <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
-             <div className="flex flex-col gap-5 w-1/2">
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Customer Name:</strong> 
-                 <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.customerName}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Mobile No:</strong> 
-                 <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.mobileNo}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Date:</strong> 
-                 <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.date}</div>
-               </div>
-             </div>
-             <div className="flex flex-col gap-5 w-1/2">
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Job No:</strong> 
-                 <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.jobNo}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Chassis No:</strong> 
-                 <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.chassisNo}</div>
-               </div>
-               <div className="flex w-full items-end">
-                 <strong className="shrink-0 mr-3">Engine No:</strong> 
-                 <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.engineNo}</div>
-               </div>
-             </div>
-           </div>
+        <>
+          <style>{`
+            @media print {
+              @page { margin: 1.5cm 1cm 2cm 1cm; }
+              @page :first { margin-top: 0; }
+              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; border-top: 1px solid #374151; padding-top: 6pt; } }
+            }
+          `}</style>
+          <div className="hidden print:block bg-white text-black font-sans">
+            <div className="p-10 pb-8">
+              <div className="text-center w-full block mb-8">
+                <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
+                <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
+                <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
+              </div>
 
-           <h3 className="text-xl font-bold uppercase mb-6 text-slate-900">
-             Blueprint: {activeModel} Series
-           </h3>
-           
-           <div className="columns-2 gap-16 text-[15px]">
-             {Object.entries(selections).map(([key, val]) => (
-               <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5 flex justify-between items-end">
-                  <span className={cn(
-                    "text-slate-600 uppercase font-semibold text-xs tracking-wider",
-                    isTamil && "font-bold text-[14px]"
-                  )}>
-                    {t(key, isTamil)}
-                  </span>
-                  <span className={cn(
-                    "font-bold text-slate-900 text-right",
-                    isTamil && "font-extrabold text-[17px] tracking-wide"
-                  )}>
-                    {t(val, isTamil)}
-                  </span>
-               </div>
-             ))}
-           </div>
-        </div>
+              <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
+                <div className="flex flex-col gap-5 w-1/2">
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Customer Name:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.customerName}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Mobile No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.mobileNo}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Address:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.address}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Date:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.date}</div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-5 w-1/2">
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Job No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.jobNo}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Chassis No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.chassisNo}</div>
+                  </div>
+                  <div className="flex w-full items-end">
+                    <strong className="shrink-0 mr-3">Engine No:</strong>
+                    <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.engineNo}</div>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold uppercase mb-6 text-slate-900">
+                Blueprint: {activeModel} Series
+              </h3>
+
+              <div className="columns-2 gap-16 text-[15px]">
+                {(() => {
+                  const nameToId = Object.fromEntries(
+                    activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
+                  );
+                  return Object.entries(selections).map(([key, vals]) => {
+                    const note = fieldNotes[nameToId[key]];
+                    return (
+                      <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5">
+                        <div className="flex justify-between items-end">
+                          <span className={cn(
+                            "text-slate-600 uppercase font-semibold text-xs tracking-wider",
+                            isTamil && "font-bold text-[14px]"
+                          )}>
+                            {t(key, isTamil)}
+                          </span>
+                          <span className={cn(
+                            "font-bold text-slate-900 text-right",
+                            isTamil && "font-extrabold text-[17px] tracking-wide"
+                          )}>
+                            {vals.map(v => t(v, isTamil)).join(", ")}
+                          </span>
+                        </div>
+                        {note && (
+                          <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              {Object.values(seating).some(v => v > 0) && (() => {
+                const printRows = [
+                  { location: "Rh Side",  type: "3 Pass",  qty: seating.rhSide3Pass,    mul: 3 },
+                  { location: "Rh Side",  type: "2+1",     qty: seating.rhSide2Plus1,   mul: 3 },
+                  { location: "Lh Side",  type: "2 Pass",  qty: seating.lhSide2Pass,    mul: 2 },
+                  { location: "Platform", type: "2 Pass",  qty: seating.platform2Pass,  mul: 2 },
+                  { location: "Platform", type: "1+1",     qty: seating.platform1Plus1, mul: 2 },
+                  { location: "Platform", type: "1 Pass",  qty: seating.platform1Pass,  mul: 1 },
+                ];
+                const total = printRows.reduce((s, r) => s + r.qty * r.mul, 0);
+                return (
+                  <div className="mt-8 break-inside-avoid">
+                    <p className="text-sm font-bold uppercase tracking-wide mb-3 border-b border-slate-300 pb-1">Seating Capacity</p>
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="text-xs text-slate-500 uppercase">
+                          <th className="text-left pb-1 font-semibold">Location</th>
+                          <th className="text-left pb-1 font-semibold">Type</th>
+                          <th className="text-center pb-1 font-semibold">×</th>
+                          <th className="text-center pb-1 font-semibold">Rows</th>
+                          <th className="text-center pb-1 font-semibold">=</th>
+                          <th className="text-right pb-1 font-semibold">Seats</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {printRows.filter(r => r.qty > 0).map((r, i) => (
+                          <tr key={i} className="border-t border-slate-100">
+                            <td className="py-1">{r.location}</td>
+                            <td className="py-1">{r.type}</td>
+                            <td className="py-1 text-center text-slate-400">×</td>
+                            <td className="py-1 text-center font-bold">{r.qty}</td>
+                            <td className="py-1 text-center text-slate-400">=</td>
+                            <td className="py-1 text-right font-bold">{r.qty * r.mul}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-black">
+                          <td colSpan={5} className="pt-1 font-bold">Total</td>
+                          <td className="pt-1 text-right font-extrabold text-lg">{total}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">
+                <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
+                <div className="text-sm mt-3">
+                  <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
+                  <ul className="mt-1 space-y-1 list-none">
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-12 grid grid-cols-2 break-inside-avoid">
+                <div>
+                  <p className="text-sm">Customer Sign</p>
+                  <div style={{ height: "50px" }} />
+                  <p className="text-sm">Date:</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm">for Durga Industries</p>
+                  <div style={{ height: "50px" }} />
+                  <p className="text-sm">Manager</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:hidden">
-          
-          {/* LEFT PANEL: Summary & Active Build View (Sticky) */}
+
+          {/* LEFT PANEL */}
           <div className="lg:col-span-4 flex flex-col gap-6 sticky top-6 self-start">
-            
-            <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 flex flex-col relative overflow-hidden print:hidden z-10 w-full">
-               <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 tracking-wider">ACTIVE MODEL</span>
-                  <select
-                    value={activeModel}
-                    onChange={(e) => handleModelSelect(e.target.value as BaseModels)}
-                    className="bg-slate-50 border border-slate-200 text-[#333333] text-sm font-bold uppercase rounded-md px-3 py-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
-                  >
-                    {(["Moffusil", "Town", "College", "Staff"] as BaseModels[]).map((model) => (
-                      <option key={model} value={model}>{model} Series</option>
-                    ))}
-                  </select>
-               </div>
-               <div className="h-48 w-full relative flex items-center justify-center p-4 bg-slate-50/50">
-                  <div className="relative w-[90%] h-full flex items-center justify-center">
-                    <Image 
-                      src={`/images/${activeModel}.png`} 
-                      alt={`${activeModel} Bus Image`} 
-                      fill 
-                      className="object-contain drop-shadow-md mix-blend-multiply transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
-               </div>
-               
-               <div className="p-5 border-t border-slate-100 flex justify-between items-end bg-white">
-                  <div>
-                    <h2 className="text-xl font-bold text-[#333333]">{activeModel}</h2>
-                    <p className="text-sm text-slate-500 mt-0.5">Configuration Estimate</p>
-                  </div>
-                  <div className="text-right">
-                    <h2 className="text-2xl font-bold text-teal-600">
-                      ₹{currentEstimate.toLocaleString('en-IN')}
-                    </h2>
-                  </div>
-               </div>
+
+            <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 flex flex-col relative overflow-hidden z-10 w-full">
+              <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 tracking-wider">ACTIVE MODEL</span>
+                <select
+                  value={activeModel}
+                  onChange={(e) => handleModelSelect(e.target.value as BaseModels)}
+                  className="bg-slate-50 border border-slate-200 text-[#333333] text-sm font-bold uppercase rounded-md px-3 py-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                >
+                  {(["Moffusil", "Town", "College", "Staff"] as BaseModels[]).map((model) => (
+                    <option key={model} value={model}>{model} Series</option>
+                  ))}
+                </select>
+              </div>
+              <div className="h-48 w-full relative flex items-center justify-center p-4 bg-slate-50/50">
+                <div className="relative w-[90%] h-full flex items-center justify-center">
+                  <Image
+                    src={`/images/${activeModel}.png`}
+                    alt={`${activeModel} Bus Image`}
+                    fill
+                    className="object-contain drop-shadow-md mix-blend-multiply transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-between items-end bg-white">
+                <div>
+                  <h2 className="text-xl font-bold text-[#333333]">{activeModel}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">Configuration Estimate</p>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-2xl font-bold text-teal-600">
+                    ₹{currentEstimate.toLocaleString('en-IN')}
+                  </h2>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 p-5 print:hidden flex flex-col max-h-[450px]">
-               <h3 className="text-sm font-semibold text-[#475569] uppercase tracking-wide mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-                 Live Specifications
-                 <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">
-                   {Object.keys(selections).length} Items
-                 </span>
-               </h3>
-               
-               {Object.keys(selections).length === 0 ? (
-                 <p className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
-                   No specifications selected.
-                 </p>
-               ) : (
-                 <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-2">
-                   {Object.entries(selections).map(([key, val]) => (
-                     <div key={key} className="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0 last:pb-0">
-                        <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t(key, isTamil)}</span>
-                        <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{t(val, isTamil)}</span>
-                     </div>
-                   ))}
-                 </div>
-               )}
+            <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 p-5 flex flex-col max-h-[450px]">
+              <div
+                className="text-sm font-semibold text-[#475569] uppercase tracking-wide mb-4 flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer hover:text-teal-600 transition-colors"
+                onClick={() => setShowLiveModal(true)}
+              >
+                <span>Live Specifications</span>
+                <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">
+                  {Object.keys(selections).length} Items
+                </span>
+              </div>
+              {Object.keys(selections).length === 0 ? (
+                <p className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                  No specifications selected.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-2">
+                  {Object.entries(selections).map(([key, vals]) => (
+                    <div key={key} className="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                      <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t(key, isTamil)}</span>
+                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* RIGHT PANEL: Basic Info & Accordion Steps */}
-          <div className="lg:col-span-8 flex flex-col gap-8 print:hidden">
-            
-            {/* New Basic Information Section */}
+          {/* RIGHT PANEL */}
+          <div className="lg:col-span-8 flex flex-col gap-8">
+
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6">
               <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
                 <div className="bg-teal-50 p-2 rounded-lg">
@@ -398,12 +693,11 @@ export default function NewJobPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                {/* Row 1 */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <User className="w-3 h-3" /> Customer Name
                   </label>
-                  <input 
+                  <input
                     type="text"
                     value={basicInfo.customerName}
                     onChange={(e) => setBasicInfo({...basicInfo, customerName: e.target.value})}
@@ -415,7 +709,7 @@ export default function NewJobPage() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Hash className="w-3 h-3" /> Job No
                   </label>
-                  <input 
+                  <input
                     type="text"
                     value={basicInfo.jobNo}
                     onChange={(e) => setBasicInfo({...basicInfo, jobNo: e.target.value})}
@@ -424,12 +718,11 @@ export default function NewJobPage() {
                   />
                 </div>
 
-                {/* Row 2 */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Phone className="w-3 h-3" /> Mobile Number
                   </label>
-                  <input 
+                  <input
                     type="text"
                     value={basicInfo.mobileNo}
                     onChange={(e) => setBasicInfo({...basicInfo, mobileNo: e.target.value})}
@@ -441,7 +734,7 @@ export default function NewJobPage() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Settings className="w-3 h-3" /> Chassis Number
                   </label>
-                  <input 
+                  <input
                     type="text"
                     value={basicInfo.chassisNo}
                     onChange={(e) => setBasicInfo({...basicInfo, chassisNo: e.target.value})}
@@ -450,12 +743,11 @@ export default function NewJobPage() {
                   />
                 </div>
 
-                {/* Row 3 */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Calendar className="w-3 h-3" /> Date
                   </label>
-                  <input 
+                  <input
                     type="date"
                     value={basicInfo.date}
                     onChange={(e) => setBasicInfo({...basicInfo, date: e.target.value})}
@@ -466,11 +758,24 @@ export default function NewJobPage() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Key className="w-3 h-3" /> Engine Number
                   </label>
-                  <input 
+                  <input
                     type="text"
                     value={basicInfo.engineNo}
                     onChange={(e) => setBasicInfo({...basicInfo, engineNo: e.target.value})}
                     placeholder="Enter Engine No."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <MapPin className="w-3 h-3" /> Address
+                  </label>
+                  <input
+                    type="text"
+                    value={basicInfo.address}
+                    onChange={(e) => setBasicInfo({...basicInfo, address: e.target.value})}
+                    placeholder="Enter Customer Address"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all outline-none"
                   />
                 </div>
@@ -479,78 +784,84 @@ export default function NewJobPage() {
 
             <div className="flex flex-col gap-4">
               {SPEC_CONFIGURATOR.map((section) => (
-                <div 
-                  key={section.groupName} 
+                <div
+                  key={section.groupName}
                   id={`section-${section.groupName}`}
                   className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
                 >
-                  <div 
+                  <div
                     className={cn(
                       "p-6 flex justify-between items-center cursor-pointer transition-all",
                       activeSection === section.groupName ? "bg-slate-50/50" : "hover:bg-slate-50/80"
                     )}
                     onClick={() => handleSectionToggle(section.groupName)}
                   >
-                     <h3 className={cn(
-                       "text-base font-semibold",
-                       activeSection === section.groupName ? "text-[#333333]" : "text-[#475569]",
-                       isTamil && "font-bold text-[17px] tracking-wide"
-                     )}>
-                       {t(section.groupName, isTamil)}
-                     </h3>
-                     {activeSection === section.groupName 
-                       ? <ChevronUp className="w-5 h-5 text-slate-400" /> 
-                       : <ChevronDown className="w-5 h-5 text-slate-400" />
-                     }
+                    <h3 className={cn(
+                      "text-base font-semibold",
+                      activeSection === section.groupName ? "text-[#333333]" : "text-[#475569]",
+                      isTamil && "font-bold text-[17px] tracking-wide"
+                    )}>
+                      {t(section.groupName, isTamil)}
+                    </h3>
+                    {activeSection === section.groupName
+                      ? <ChevronUp className="w-5 h-5 text-slate-400" />
+                      : <ChevronDown className="w-5 h-5 text-slate-400" />
+                    }
                   </div>
-                  
+
                   {activeSection === section.groupName && (
                     <div className="p-6 pt-0 border-t border-slate-100 flex flex-col gap-8 bg-white mt-4">
                       {section.fields.map((field) => (
                         <div key={field.id}>
                           <p className={cn(
                             "text-sm font-semibold text-[#64748B] mb-3",
-                            isTamil && "font-bold text-[15px]" 
+                            isTamil && "font-bold text-[15px]"
                           )}>
                             {t(field.name, isTamil)}
                           </p>
-                          
                           <div className="flex flex-wrap gap-3">
                             {field.options.map(opt => {
-                              const isSelected = selections[field.name] === opt;
+                              const isSelected = (selections[field.name] ?? []).includes(opt);
                               const hasExtraPrice = activeProfile.extrasPricing[field.id];
-                              
                               return (
                                 <div
                                   key={opt}
                                   onClick={() => handleSelect(field.name, opt)}
                                   className={cn(
                                     "px-5 py-2.5 rounded-lg cursor-pointer flex items-center justify-between transition-all border",
-                                    isSelected 
-                                      ? "border-teal-500 bg-teal-50" 
+                                    isSelected
+                                      ? "border-teal-500 bg-teal-50"
                                       : "border-slate-200 bg-white hover:border-teal-300"
                                   )}
                                 >
                                   <span className={cn(
-                                    "text-sm font-medium", 
+                                    "text-sm font-medium",
                                     isSelected ? "text-teal-800" : "text-[#333333]",
-                                    isTamil && "font-bold text-[15.5px]" 
+                                    isTamil && "font-bold text-[15.5px]"
                                   )}>
                                     {t(opt, isTamil)}
                                   </span>
-                                  
                                   {hasExtraPrice && opt === "Yes" && (
                                     <span className={cn(
-                                      "text-xs font-medium ml-4", 
+                                      "text-xs font-medium ml-4",
                                       isSelected ? "text-teal-600" : "text-slate-400"
                                     )}>
                                       +₹{(hasExtraPrice/1000).toFixed(1)}k
                                     </span>
                                   )}
                                 </div>
-                              )
+                              );
                             })}
                           </div>
+                          {field.noteEnabled && (
+                            <textarea
+                              value={fieldNotes[field.id] ?? ""}
+                              onChange={e => setFieldNotes(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              placeholder={`Note for ${field.name}...`}
+                              rows={2}
+                              className="mt-3 w-full px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-slate-700 placeholder-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all resize-none"
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -558,6 +869,86 @@ export default function NewJobPage() {
                 </div>
               ))}
             </div>
+
+            {/* ─── SEATING CAPACITY ─────────────────────────────────────────── */}
+            {(() => {
+              const SEATING_ROWS: { key: keyof typeof DEFAULT_SEATING; location: string; type: string; multiplier: number }[] = [
+                { key: "rhSide3Pass",    location: "Rh Side",  type: "3 Pass",  multiplier: 3 },
+                { key: "rhSide2Plus1",   location: "Rh Side",  type: "2+1",     multiplier: 3 },
+                { key: "lhSide2Pass",    location: "Lh Side",  type: "2 Pass",  multiplier: 2 },
+                { key: "platform2Pass",  location: "Platform", type: "2 Pass",  multiplier: 2 },
+                { key: "platform1Plus1", location: "Platform", type: "1+1",     multiplier: 2 },
+                { key: "platform1Pass",  location: "Platform", type: "1 Pass",  multiplier: 1 },
+              ];
+              const total = SEATING_ROWS.reduce((sum, r) => sum + (seating[r.key] || 0) * r.multiplier, 0);
+              const isOpen = activeSection === "SEATING CAPACITY";
+              return (
+                <div
+                  id="section-SEATING CAPACITY"
+                  className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
+                >
+                  <div
+                    className={cn("p-6 flex justify-between items-center cursor-pointer transition-all", isOpen ? "bg-slate-50/50" : "hover:bg-slate-50/80")}
+                    onClick={() => handleSectionToggle("SEATING CAPACITY")}
+                  >
+                    <h3 className="text-base font-semibold text-[#475569]">
+                      {isTamil ? "இருக்கை திறன்" : "SEATING CAPACITY"}
+                      {total > 0 && <span className="ml-3 text-teal-600 font-bold">{total} Seats</span>}
+                    </h3>
+                    {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                  </div>
+                  {isOpen && (
+                    <div className="p-6 pt-0 border-t border-slate-100 bg-white mt-4">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                              <th className="text-left pb-3 w-28">Location</th>
+                              <th className="text-left pb-3 w-24">Type</th>
+                              <th className="text-center pb-3 w-10">×</th>
+                              <th className="text-center pb-3 w-28">Rows (Qty)</th>
+                              <th className="text-center pb-3 w-10">=</th>
+                              <th className="text-right pb-3">Seats</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {SEATING_ROWS.map((row) => {
+                              const qty = seating[row.key] || 0;
+                              const result = qty * row.multiplier;
+                              return (
+                                <tr key={row.key} className="border-b border-slate-50">
+                                  <td className="py-3 text-slate-500 font-medium">{row.location}</td>
+                                  <td className="py-3 text-slate-700 font-semibold">{row.type}</td>
+                                  <td className="py-3 text-center text-slate-400">×</td>
+                                  <td className="py-3 text-center">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={qty === 0 ? "" : qty}
+                                      onChange={e => setSeating(prev => ({ ...prev, [row.key]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                      placeholder="0"
+                                      className="w-20 text-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                                    />
+                                  </td>
+                                  <td className="py-3 text-center text-slate-400">=</td>
+                                  <td className="py-3 text-right font-bold text-slate-800">{result > 0 ? result : "—"}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t-2 border-slate-200">
+                              <td colSpan={5} className="pt-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Total</td>
+                              <td className="pt-3 text-right text-xl font-extrabold text-teal-600">{total > 0 ? total : "—"}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
         </div>

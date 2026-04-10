@@ -5,6 +5,7 @@ export interface Category {
   name: string;
   nameTamil?: string; // For Admin overrides
   options: FieldOption[];
+  noteEnabled?: boolean;
 }
 
 export interface SpecCategoryGroup {
