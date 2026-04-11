@@ -354,8 +354,8 @@ export default function NewJobPage() {
                   ))}
                   {seatingTotal > 0 && (
                     <div className="flex justify-between items-start border-b border-slate-100 py-2">
-                      <span className="text-xs text-teal-600 uppercase tracking-wide w-1/2 leading-tight mt-0.5">Seating Capacity</span>
-                      <span className="text-sm font-semibold text-teal-700 text-right w-1/2">{seatingTotal} Seats</span>
+                      <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">Seating Capacity</span>
+                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{seatingTotal} Seats</span>
                     </div>
                   )}
                 </div>
@@ -673,8 +673,8 @@ export default function NewJobPage() {
                   ))}
                   {seatingTotal > 0 && (
                     <div className="flex justify-between items-start border-b border-slate-50 pb-2">
-                      <span className="text-[11px] text-teal-600 uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t("Seating Capacity", isTamil)}</span>
-                      <span className="text-sm font-medium text-teal-700 text-right w-2/3 leading-snug">{seatingTotal} Seats</span>
+                      <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t("Seating Capacity", isTamil)}</span>
+                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{seatingTotal} Seats</span>
                     </div>
                   )}
                 </div>
