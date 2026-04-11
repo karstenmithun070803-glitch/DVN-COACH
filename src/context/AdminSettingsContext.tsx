@@ -7,6 +7,7 @@ import {
   STANDARD_VARIATIONS,
   BaseModels,
   SpecCategoryGroup,
+  Category,
   SeatingRowConfig,
   DEFAULT_SEATING_ROWS,
 } from "@/data/specs";
@@ -51,7 +52,7 @@ const BASELINE_SYNC_KEY = "dvn-v4-baseline-sync"; // One-time forced reset of al
 const FULL_SYNC_KEY = "dvn-v5-full-moffusil-baseline"; // One-time copy of Moffusil specGroups+standardSelections into all other models
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
-  const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as any);
+  const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as Record<BaseModels, BusModelProfile>);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -177,6 +178,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       localStorage.setItem(FULL_SYNC_KEY, "true");
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProfiles(currentProfiles);
     setIsLoaded(true);
   }, []);
@@ -201,9 +203,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       // Deep clone only the target model — zero bleed-through to other models
       const targetProfile = structuredClone(newProfiles[model]);
       
-      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
+      const group = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
       if (group) {
-        const field = group.fields.find((f: any) => f.id === fieldId);
+        const field = group.fields.find((f: Category) => f.id === fieldId);
         if (field && !field.options.includes(option)) {
           field.options = [...field.options, option];
         }
@@ -219,9 +221,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       const newProfiles = { ...prev };
       const targetProfile = structuredClone(newProfiles[model]);
       
-      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
+      const group = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
       if (group) {
-        const field = group.fields.find((f: any) => f.id === fieldId);
+        const field = group.fields.find((f: Category) => f.id === fieldId);
         if (field) {
           field.options = field.options.filter((o: string) => o !== option);
           if (targetProfile.standardSelections[field.name] === option) {
@@ -262,8 +264,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     const id = name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     setProfiles(prev => {
       const targetProfile = structuredClone(prev[model]);
-      const extrasGroup = targetProfile.specGroups.find((g: any) => g.groupName.includes("EXTRAS"));
-      if (extrasGroup && !extrasGroup.fields.some((f: any) => f.id === id)) {
+      const extrasGroup = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName.includes("EXTRAS"));
+      if (extrasGroup && !extrasGroup.fields.some((f: Category) => f.id === id)) {
         extrasGroup.fields = [...extrasGroup.fields, { id, name, options: ["Yes", "No"] }];
       }
       targetProfile.extrasPricing = { ...targetProfile.extrasPricing, [id]: price };
@@ -282,7 +284,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const reorderFields = (model: BaseModels, groupName: string, fromIndex: number, toIndex: number) => {
     setProfiles(prev => {
       const p = structuredClone(prev[model]);
-      const g = p.specGroups.find((g: any) => g.groupName === groupName);
+      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
       if (g) g.fields = arrayMove(g.fields, fromIndex, toIndex);
       return { ...prev, [model]: p };
     });
@@ -291,8 +293,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const reorderOptions = (model: BaseModels, groupName: string, fieldId: string, fromIndex: number, toIndex: number) => {
     setProfiles(prev => {
       const p = structuredClone(prev[model]);
-      const g = p.specGroups.find((g: any) => g.groupName === groupName);
-      const f = g?.fields.find((f: any) => f.id === fieldId);
+      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
+      const f = g?.fields.find((f: Category) => f.id === fieldId);
       if (f) f.options = arrayMove(f.options, fromIndex, toIndex);
       return { ...prev, [model]: p };
     });
@@ -301,8 +303,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const renameField = (model: BaseModels, groupName: string, fieldId: string, newName: string) => {
     setProfiles(prev => {
       const p = structuredClone(prev[model]);
-      const g = p.specGroups.find((g: any) => g.groupName === groupName);
-      const f = g?.fields.find((f: any) => f.id === fieldId);
+      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
+      const f = g?.fields.find((f: Category) => f.id === fieldId);
       if (f) {
         if (p.standardSelections[f.name] !== undefined) {
           p.standardSelections[newName] = p.standardSelections[f.name];
@@ -317,8 +319,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const renameOption = (model: BaseModels, groupName: string, fieldId: string, oldOpt: string, newOpt: string) => {
     setProfiles(prev => {
       const p = structuredClone(prev[model]);
-      const g = p.specGroups.find((g: any) => g.groupName === groupName);
-      const f = g?.fields.find((f: any) => f.id === fieldId);
+      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
+      const f = g?.fields.find((f: Category) => f.id === fieldId);
       if (f) {
         f.options = f.options.map((o: string) => o === oldOpt ? newOpt : o);
         if (p.standardSelections[f.name] === oldOpt) p.standardSelections[f.name] = newOpt;
@@ -330,8 +332,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const toggleFieldNote = (model: BaseModels, groupName: string, fieldId: string) => {
     setProfiles(prev => {
       const p = structuredClone(prev[model]);
-      const g = p.specGroups.find((g: any) => g.groupName === groupName);
-      const f = g?.fields.find((f: any) => f.id === fieldId);
+      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
+      const f = g?.fields.find((f: Category) => f.id === fieldId);
       if (f) f.noteEnabled = !f.noteEnabled;
       return { ...prev, [model]: p };
     });
@@ -341,8 +343,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     const id = fieldName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     setProfiles(prev => {
       const targetProfile = structuredClone(prev[model]);
-      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
-      if (group && !group.fields.some((f: any) => f.id === id)) {
+      const group = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
+      if (group && !group.fields.some((f: Category) => f.id === id)) {
         group.fields = [...group.fields, { id, name: fieldName.trim(), options: [] }];
       }
       return { ...prev, [model]: targetProfile };
@@ -352,13 +354,13 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const removeField = (model: BaseModels, groupName: string, fieldId: string) => {
     setProfiles(prev => {
       const targetProfile = structuredClone(prev[model]);
-      const group = targetProfile.specGroups.find((g: any) => g.groupName === groupName);
+      const group = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
       if (group) {
-        const field = group.fields.find((f: any) => f.id === fieldId);
+        const field = group.fields.find((f: Category) => f.id === fieldId);
         if (field) {
           delete targetProfile.standardSelections[field.name];
         }
-        group.fields = group.fields.filter((f: any) => f.id !== fieldId);
+        group.fields = group.fields.filter((f: Category) => f.id !== fieldId);
       }
       return { ...prev, [model]: targetProfile };
     });
@@ -392,12 +394,13 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const removeExtraItem = (model: BaseModels, fieldId: string) => {
     setProfiles(prev => {
       const targetProfile = structuredClone(prev[model]);
-      const extrasGroup = targetProfile.specGroups.find((g: any) => g.groupName.includes("EXTRAS"));
+      const extrasGroup = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName.includes("EXTRAS"));
       if (extrasGroup) {
-        extrasGroup.fields = extrasGroup.fields.filter((f: any) => f.id !== fieldId);
+        extrasGroup.fields = extrasGroup.fields.filter((f: Category) => f.id !== fieldId);
       }
-      const { [fieldId]: _removed, ...remainingPricing } = targetProfile.extrasPricing;
-      targetProfile.extrasPricing = remainingPricing;
+      targetProfile.extrasPricing = Object.fromEntries(
+        Object.entries(targetProfile.extrasPricing).filter(([k]) => k !== fieldId)
+      );
       return { ...prev, [model]: targetProfile };
     });
   };

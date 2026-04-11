@@ -7,7 +7,7 @@ import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
 import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
 import { ExtrasPriceTable } from "@/components/admin/ExtrasPriceTable";
 import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
-import { Settings2, Bus, ChevronRight } from "lucide-react";
+import { Settings2, Bus } from "lucide-react";
 
 const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
 

@@ -72,7 +72,7 @@ function SortableOptionChip({
     setIsEditing(false);
   };
 
-  const handleChipClick = (_e: React.MouseEvent) => {
+  const handleChipClick = () => {
     if (isEditing) return;
     // Only start editing when clicking on the text area, not action buttons
     setIsEditing(true);

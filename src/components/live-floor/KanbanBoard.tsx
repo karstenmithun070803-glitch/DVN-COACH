@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -11,17 +11,13 @@ import {
   useSensors,
   DragStartEvent,
   DragOverEvent,
-  DragEndEvent,
 } from "@dnd-kit/core";
 import { X, Check, Edit2, Truck } from "lucide-react";
-import { cn } from "@/utils/cn";
 import {
-  arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { JobCard, MOCK_JOBS, STAGES, ProductionStage } from "@/data/mockKanbanData";
+import { JobCard, STAGES, ProductionStage } from "@/data/mockKanbanData";
+import { BaseModels } from "@/data/specs";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
 
@@ -85,7 +81,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = () => {
     setActiveJob(null);
   };
 
@@ -223,7 +219,7 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                           autoFocus
                           value={editModalValue}
                           onChange={(e) => {
-                            const newModel = e.target.value as any;
+                            const newModel = e.target.value as BaseModels;
                             updateJob(currentJob.id, { model: newModel });
                             setEditingModalField(null);
                           }}

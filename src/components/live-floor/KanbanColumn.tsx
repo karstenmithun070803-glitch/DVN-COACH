@@ -1,12 +1,10 @@
 "use client";
 
-import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { 
   SortableContext, 
   verticalListSortingStrategy 
 } from "@dnd-kit/sortable";
-import { cn } from "@/utils/cn";
 import { JobCard, ProductionStage } from "@/data/mockKanbanData";
 import { KanbanCard } from "./KanbanCard";
 

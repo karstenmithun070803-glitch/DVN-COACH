@@ -22,6 +22,7 @@ export function ExtrasPriceTable({ model, extras }: ExtrasPriceTableProps) {
     Object.entries(extras).forEach(([key, val]) => {
       prices[key] = val.toString();
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditingPrices(prices);
   }, [extras]);
 

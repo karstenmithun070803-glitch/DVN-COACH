@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Settings, MapPin, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -27,7 +27,7 @@ const DEFAULT_BASIC_INFO = {
   engineNo: ""
 };
 
-export default function NewJobPage() {
+function NewJobPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("editId");
@@ -957,5 +957,13 @@ export default function NewJobPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewJobPageWrapper() {
+  return (
+    <Suspense>
+      <NewJobPage />
+    </Suspense>
   );
 }
