@@ -610,8 +610,11 @@ export default function NewJobPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:hidden">
 
-          {/* LEFT PANEL */}
-          <div className="lg:col-span-4 flex flex-col gap-6 sticky top-6 self-start">
+          {/* SIDEBAR — contents on tablet (children join grid directly) · flex column on desktop */}
+          <div className="contents lg:flex lg:flex-col lg:gap-6 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
+
+          {/* ACTIVE MODEL */}
+          <div className="order-1">
 
             <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 flex flex-col relative overflow-hidden z-10 w-full">
               <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
@@ -649,6 +652,10 @@ export default function NewJobPage() {
               </div>
             </div>
 
+          </div>
+
+          {/* LIVE SPEC */}
+          <div className="order-3">
             <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 p-5 flex flex-col max-h-[450px]">
               <div
                 className="text-sm font-semibold text-[#475569] uppercase tracking-wide mb-4 flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer hover:text-teal-600 transition-colors"
@@ -682,8 +689,10 @@ export default function NewJobPage() {
             </div>
           </div>
 
+          </div> {/* end SIDEBAR */}
+
           {/* RIGHT PANEL */}
-          <div className="lg:col-span-8 flex flex-col gap-8">
+          <div className="order-2 flex flex-col gap-8 lg:col-span-8">
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6">
               <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
@@ -897,12 +906,12 @@ export default function NewJobPage() {
                         <table className="w-full text-[14px]">
                           <thead>
                             <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                              <th className="text-left pb-4 w-36">Location</th>
-                              <th className="text-left pb-4 w-32">Type</th>
+                              <th className="text-left pb-4 min-w-[100px]">Location</th>
+                              <th className="text-left pb-4 min-w-[80px]">Type</th>
                               <th className="text-center pb-4 w-10">×</th>
-                              <th className="text-center pb-4 w-32">Rows (Qty)</th>
+                              <th className="text-center pb-4 min-w-[100px]">Rows (Qty)</th>
                               <th className="text-center pb-4 w-10">=</th>
-                              <th className="text-right pb-4">Seats</th>
+                              <th className="text-right pb-4 min-w-[60px]">Seats</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -921,7 +930,7 @@ export default function NewJobPage() {
                                       value={qty === 0 ? "" : qty}
                                       onChange={e => setSeating(prev => ({ ...prev, [row.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
                                       placeholder="0"
-                                      className="w-24 text-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                                      className="w-24 min-h-[44px] text-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
                                     />
                                   </td>
                                   <td className="py-4 text-center text-slate-400">=</td>
