@@ -6,7 +6,9 @@ import {
   BUS_MODELS_BASE,
   STANDARD_VARIATIONS,
   BaseModels,
-  SpecCategoryGroup
+  SpecCategoryGroup,
+  SeatingRowConfig,
+  DEFAULT_SEATING_ROWS,
 } from "@/data/specs";
 import { arrayMove } from "@dnd-kit/sortable";
 
@@ -15,6 +17,7 @@ export interface BusModelProfile {
   specGroups: SpecCategoryGroup[];
   standardSelections: Record<string, string>;
   extrasPricing: Record<string, number>;
+  seatingRows: SeatingRowConfig[];
 }
 
 interface AdminContextType {
@@ -34,6 +37,9 @@ interface AdminContextType {
   renameField: (model: BaseModels, groupName: string, fieldId: string, newName: string) => void;
   renameOption: (model: BaseModels, groupName: string, fieldId: string, oldOpt: string, newOpt: string) => void;
   toggleFieldNote: (model: BaseModels, groupName: string, fieldId: string) => void;
+  addSeatingRow: (model: BaseModels, row: Omit<SeatingRowConfig, "id">) => void;
+  updateSeatingRow: (model: BaseModels, id: string, changes: Partial<Omit<SeatingRowConfig, "id">>) => void;
+  removeSeatingRow: (model: BaseModels, id: string) => void;
   isLoaded: boolean;
 }
 
@@ -113,6 +119,20 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         localStorage.setItem(FULL_SYNC_KEY, "true");
       }
 
+      // ─── One-Time Seating Rows Init (v6) ─────────────────────────────────
+      // Adds default seatingRows to any existing profile that doesn't have them.
+      const SEATING_ROWS_MIGRATION_KEY = "dvn-v6-seating-rows-init";
+      const hasSeatingRows = localStorage.getItem(SEATING_ROWS_MIGRATION_KEY);
+      if (!hasSeatingRows) {
+        const allModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
+        allModels.forEach(model => {
+          if (currentProfiles[model] && !currentProfiles[model].seatingRows) {
+            currentProfiles[model].seatingRows = structuredClone(DEFAULT_SEATING_ROWS);
+          }
+        });
+        localStorage.setItem(SEATING_ROWS_MIGRATION_KEY, "true");
+      }
+
       // ─── Spec Groups Sync ──────────────────────────────────────────────────
       // Ensure Town/College/Staff have the same spec groups as Moffusil.
       const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
@@ -148,6 +168,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
             "bottom-aluminium-sheet-extra": 0,
             "black-cobra-plywood-extra": 0,
           },
+          seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
         };
       });
 
@@ -343,6 +364,31 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     });
   };
 
+  const addSeatingRow = (model: BaseModels, row: Omit<SeatingRowConfig, "id">) => {
+    const id = `${row.location}-${row.type}`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + `-${Date.now()}`;
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      p.seatingRows = [...(p.seatingRows ?? []), { id, ...row }];
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const updateSeatingRow = (model: BaseModels, id: string, changes: Partial<Omit<SeatingRowConfig, "id">>) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      p.seatingRows = (p.seatingRows ?? []).map(r => r.id === id ? { ...r, ...changes } : r);
+      return { ...prev, [model]: p };
+    });
+  };
+
+  const removeSeatingRow = (model: BaseModels, id: string) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      p.seatingRows = (p.seatingRows ?? []).filter(r => r.id !== id);
+      return { ...prev, [model]: p };
+    });
+  };
+
   const removeExtraItem = (model: BaseModels, fieldId: string) => {
     setProfiles(prev => {
       const targetProfile = structuredClone(prev[model]);
@@ -374,6 +420,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       renameField,
       renameOption,
       toggleFieldNote,
+      addSeatingRow,
+      updateSeatingRow,
+      removeSeatingRow,
       isLoaded
     }}>
       {children}

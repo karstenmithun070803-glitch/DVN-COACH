@@ -241,6 +241,18 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "10 Nos": "10 எண்ணிக்கை",
   "2 Line": "2 வரி",
   "LED 12+2": "எல்இடி 12+2",
+
+  // Seating Capacity rows
+  "SEATING CAPACITY": "இருக்கை திறன்",
+  "Seating Capacity": "இருக்கை திறன்",
+  "Rh Side": "வலது பக்கம்",
+  "Lh Side": "இடது பக்கம்",
+  "Platform": "தட்டு",
+  "3 Pass": "3 நபர்",
+  "2 Pass": "2 நபர்",
+  "1 Pass": "1 நபர்",
+  "2+1": "2+1",
+  "1+1": "1+1",
 };
 
 export function t(key: string, enabled: boolean = false): string {

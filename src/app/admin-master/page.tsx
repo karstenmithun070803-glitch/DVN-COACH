@@ -6,6 +6,7 @@ import { BaseModels } from "@/data/specs";
 import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
 import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
 import { ExtrasPriceTable } from "@/components/admin/ExtrasPriceTable";
+import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
 import { Settings2, Bus, ChevronRight } from "lucide-react";
 
 const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
@@ -67,13 +68,14 @@ export default function AdminMasterPage() {
           />
         </div>
 
-        {/* Right Column: Spec Manager */}
-        <div className="lg:col-span-8">
-          <SpecMasterManager 
-            model={selectedModel} 
+        {/* Right Column: Spec Manager + Seating Rows */}
+        <div className="lg:col-span-8 space-y-8">
+          <SpecMasterManager
+            model={selectedModel}
             specGroups={activeProfile.specGroups}
             standardSelections={activeProfile.standardSelections}
           />
+          <SeatingRowsManager model={selectedModel} />
         </div>
       </div>
     </div>

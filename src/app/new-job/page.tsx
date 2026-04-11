@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Sett
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/utils/cn";
-import { BaseModels } from "@/data/specs";
+import { BaseModels, DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { useJobs } from "@/context/JobsContext";
 import { t } from "@/data/translation";
@@ -16,15 +16,6 @@ const editDraftKey = (id: string) => `dvn-edit-draft-${id}`;
 function wrapStandard(std: Record<string, string>): Record<string, string[]> {
   return Object.fromEntries(Object.entries(std).map(([k, v]) => [k, [v]]));
 }
-
-const DEFAULT_SEATING = {
-  rhSide3Pass: 0,
-  rhSide2Plus1: 0,
-  lhSide2Pass: 0,
-  platform2Pass: 0,
-  platform1Plus1: 0,
-  platform1Pass: 0,
-};
 
 const DEFAULT_BASIC_INFO = {
   customerName: "",
@@ -43,7 +34,7 @@ export default function NewJobPage() {
   const cloneId = searchParams.get("cloneId");
 
   const { profiles, isLoaded } = useAdminSettings();
-  const { addJob, updateJob, jobs, getNextJobNumber } = useJobs();
+  const { addJob, updateJob, jobs } = useJobs();
 
   const [activeModel, setActiveModel] = useState<BaseModels>("Town");
   const [selections, setSelections] = useState<Record<string, string[]>>({});
@@ -56,7 +47,7 @@ export default function NewJobPage() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
   const [basicInfo, setBasicInfo] = useState(DEFAULT_BASIC_INFO);
-  const [seating, setSeating] = useState(DEFAULT_SEATING);
+  const [seating, setSeating] = useState<Record<string, number>>({});
 
   // isHydrated is STATE (not ref) so the persist effect only fires on the render
   // AFTER hydration — by which point all setState calls from hydration are applied.
@@ -73,10 +64,10 @@ export default function NewJobPage() {
       setCurrentEditId(null);
       setCurrentCloneId(null);
       setActiveModel("Town");
-      setBasicInfo({ ...DEFAULT_BASIC_INFO, jobNo: getNextJobNumber() });
+      setBasicInfo({ ...DEFAULT_BASIC_INFO });
       setSelections(wrapStandard(profiles["Town"].standardSelections));
       setFieldNotes({});
-      setSeating(DEFAULT_SEATING);
+      setSeating({});
       setIsStandardBuild(true);
       // Keep isHydrated true — we don't want the hydration effect to run again
     }
@@ -98,7 +89,7 @@ export default function NewJobPage() {
         setBasicInfo({ ...DEFAULT_BASIC_INFO, ...draft.basicInfo });
         setSelections(draft.selections ?? {});
         setFieldNotes(draft.fieldNotes ?? {});
-        setSeating({ ...DEFAULT_SEATING, ...(draft.seating ?? {}) });
+        setSeating(draft.seating ?? {});
         setIsStandardBuild(false);
         setIsHydrated(true);
         return;
@@ -137,7 +128,7 @@ export default function NewJobPage() {
       setActiveModel(job.model);
       setBasicInfo({
         customerName: job.customerName || "",
-        jobNo: getNextJobNumber(),
+        jobNo: "",
         mobileNo: job.mobileNo || "",
         address: "",
         chassisNo: "",
@@ -163,11 +154,11 @@ export default function NewJobPage() {
       setBasicInfo({ ...DEFAULT_BASIC_INFO, ...draft.basicInfo });
       setSelections(draft.selections ?? {});
       setFieldNotes(draft.fieldNotes ?? {});
-      setSeating({ ...DEFAULT_SEATING, ...(draft.seating ?? {}) });
+      setSeating(draft.seating ?? {});
       setIsStandardBuild(draft.isStandardBuild ?? true);
     } else {
       // Brand new job with no draft
-      setBasicInfo(prev => ({ ...prev, jobNo: getNextJobNumber() }));
+      setBasicInfo(DEFAULT_BASIC_INFO);
       setSelections(wrapStandard(profiles["Town"].standardSelections));
     }
     setIsHydrated(true);
@@ -229,11 +220,10 @@ export default function NewJobPage() {
 
   const handleClear = () => {
     localStorage.removeItem(DRAFT_NEW_KEY);
-    const nextJobNo = getNextJobNumber();
-    setBasicInfo({ ...DEFAULT_BASIC_INFO, jobNo: nextJobNo });
+    setBasicInfo({ ...DEFAULT_BASIC_INFO, date: new Date().toISOString().split("T")[0] });
     setSelections(wrapStandard(profiles[activeModel].standardSelections));
     setFieldNotes({});
-    setSeating(DEFAULT_SEATING);
+    setSeating({});
     setIsStandardBuild(true);
     setShowClearModal(false);
   };
@@ -241,7 +231,7 @@ export default function NewJobPage() {
   const handlePushToLiveFloor = () => {
     const jobData = {
       customerName: basicInfo.customerName || "New Customer",
-      jobNo: basicInfo.jobNo || getNextJobNumber(),
+      jobNo: basicInfo.jobNo || "",
       chassisNo: basicInfo.chassisNo || "",
       engineNo: basicInfo.engineNo || "",
       mobileNo: basicInfo.mobileNo,
@@ -297,6 +287,9 @@ export default function NewJobPage() {
 
   const activeProfile = profiles[activeModel];
   const SPEC_CONFIGURATOR = activeProfile.specGroups;
+  const seatingTotal = (activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS).reduce(
+    (sum, r) => sum + (seating[r.id] || 0) * r.multiplier, 0
+  );
 
   const handleSectionToggle = (sectionName: string) => {
     const isOpening = activeSection !== sectionName;
@@ -349,7 +342,7 @@ export default function NewJobPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-6">
-              {Object.keys(selections).length === 0 ? (
+              {Object.keys(selections).length === 0 && seatingTotal === 0 ? (
                 <p className="text-sm text-slate-400 italic text-center py-8">No specifications selected yet.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-x-8 gap-y-2">
@@ -359,6 +352,12 @@ export default function NewJobPage() {
                       <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}</span>
                     </div>
                   ))}
+                  {seatingTotal > 0 && (
+                    <div className="flex justify-between items-start border-b border-slate-100 py-2">
+                      <span className="text-xs text-teal-600 uppercase tracking-wide w-1/2 leading-tight mt-0.5">Seating Capacity</span>
+                      <span className="text-sm font-semibold text-teal-700 text-right w-1/2">{seatingTotal} Seats</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -537,18 +536,14 @@ export default function NewJobPage() {
               </div>
 
               {Object.values(seating).some(v => v > 0) && (() => {
-                const printRows = [
-                  { location: "Rh Side",  type: "3 Pass",  qty: seating.rhSide3Pass,    mul: 3 },
-                  { location: "Rh Side",  type: "2+1",     qty: seating.rhSide2Plus1,   mul: 3 },
-                  { location: "Lh Side",  type: "2 Pass",  qty: seating.lhSide2Pass,    mul: 2 },
-                  { location: "Platform", type: "2 Pass",  qty: seating.platform2Pass,  mul: 2 },
-                  { location: "Platform", type: "1+1",     qty: seating.platform1Plus1, mul: 2 },
-                  { location: "Platform", type: "1 Pass",  qty: seating.platform1Pass,  mul: 1 },
-                ];
+                const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
+                const printRows = seatingRows
+                  .map(r => ({ location: t(r.location, isTamil), type: t(r.type, isTamil), qty: seating[r.id] ?? 0, mul: r.multiplier }))
+                  .filter(r => r.qty > 0);
                 const total = printRows.reduce((s, r) => s + r.qty * r.mul, 0);
                 return (
                   <div className="mt-8 break-inside-avoid">
-                    <p className="text-sm font-bold uppercase tracking-wide mb-3 border-b border-slate-300 pb-1">Seating Capacity</p>
+                    <p className="text-sm font-bold uppercase tracking-wide mb-3 border-b border-slate-300 pb-1">{t("Seating Capacity", isTamil)}</p>
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="text-xs text-slate-500 uppercase">
@@ -561,7 +556,7 @@ export default function NewJobPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {printRows.filter(r => r.qty > 0).map((r, i) => (
+                        {printRows.map((r, i) => (
                           <tr key={i} className="border-t border-slate-100">
                             <td className="py-1">{r.location}</td>
                             <td className="py-1">{r.type}</td>
@@ -661,10 +656,10 @@ export default function NewJobPage() {
               >
                 <span>Live Specifications</span>
                 <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">
-                  {Object.keys(selections).length} Items
+                  {Object.keys(selections).length + (seatingTotal > 0 ? 1 : 0)} Items
                 </span>
               </div>
-              {Object.keys(selections).length === 0 ? (
+              {Object.keys(selections).length === 0 && seatingTotal === 0 ? (
                 <p className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
                   No specifications selected.
                 </p>
@@ -676,6 +671,12 @@ export default function NewJobPage() {
                       <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}</span>
                     </div>
                   ))}
+                  {seatingTotal > 0 && (
+                    <div className="flex justify-between items-start border-b border-slate-50 pb-2">
+                      <span className="text-[11px] text-teal-600 uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t("Seating Capacity", isTamil)}</span>
+                      <span className="text-sm font-medium text-teal-700 text-right w-2/3 leading-snug">{seatingTotal} Seats</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -713,7 +714,7 @@ export default function NewJobPage() {
                     type="text"
                     value={basicInfo.jobNo}
                     onChange={(e) => setBasicInfo({...basicInfo, jobNo: e.target.value})}
-                    placeholder="DVN-XXXX"
+                    placeholder="e.g. 345"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all outline-none"
                   />
                 </div>
@@ -872,15 +873,8 @@ export default function NewJobPage() {
 
             {/* ─── SEATING CAPACITY ─────────────────────────────────────────── */}
             {(() => {
-              const SEATING_ROWS: { key: keyof typeof DEFAULT_SEATING; location: string; type: string; multiplier: number }[] = [
-                { key: "rhSide3Pass",    location: "Rh Side",  type: "3 Pass",  multiplier: 3 },
-                { key: "rhSide2Plus1",   location: "Rh Side",  type: "2+1",     multiplier: 3 },
-                { key: "lhSide2Pass",    location: "Lh Side",  type: "2 Pass",  multiplier: 2 },
-                { key: "platform2Pass",  location: "Platform", type: "2 Pass",  multiplier: 2 },
-                { key: "platform1Plus1", location: "Platform", type: "1+1",     multiplier: 2 },
-                { key: "platform1Pass",  location: "Platform", type: "1 Pass",  multiplier: 1 },
-              ];
-              const total = SEATING_ROWS.reduce((sum, r) => sum + (seating[r.key] || 0) * r.multiplier, 0);
+              const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
+              const total = seatingRows.reduce((sum, r) => sum + (seating[r.id] || 0) * r.multiplier, 0);
               const isOpen = activeSection === "SEATING CAPACITY";
               return (
                 <div
@@ -892,7 +886,7 @@ export default function NewJobPage() {
                     onClick={() => handleSectionToggle("SEATING CAPACITY")}
                   >
                     <h3 className="text-base font-semibold text-[#475569]">
-                      {isTamil ? "இருக்கை திறன்" : "SEATING CAPACITY"}
+                      {t("SEATING CAPACITY", isTamil)}
                       {total > 0 && <span className="ml-3 text-teal-600 font-bold">{total} Seats</span>}
                     </h3>
                     {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
@@ -900,46 +894,46 @@ export default function NewJobPage() {
                   {isOpen && (
                     <div className="p-6 pt-0 border-t border-slate-100 bg-white mt-4">
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-[14px]">
                           <thead>
                             <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                              <th className="text-left pb-3 w-28">Location</th>
-                              <th className="text-left pb-3 w-24">Type</th>
-                              <th className="text-center pb-3 w-10">×</th>
-                              <th className="text-center pb-3 w-28">Rows (Qty)</th>
-                              <th className="text-center pb-3 w-10">=</th>
-                              <th className="text-right pb-3">Seats</th>
+                              <th className="text-left pb-4 w-36">Location</th>
+                              <th className="text-left pb-4 w-32">Type</th>
+                              <th className="text-center pb-4 w-10">×</th>
+                              <th className="text-center pb-4 w-32">Rows (Qty)</th>
+                              <th className="text-center pb-4 w-10">=</th>
+                              <th className="text-right pb-4">Seats</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {SEATING_ROWS.map((row) => {
-                              const qty = seating[row.key] || 0;
+                            {seatingRows.map((row) => {
+                              const qty = seating[row.id] || 0;
                               const result = qty * row.multiplier;
                               return (
-                                <tr key={row.key} className="border-b border-slate-50">
-                                  <td className="py-3 text-slate-500 font-medium">{row.location}</td>
-                                  <td className="py-3 text-slate-700 font-semibold">{row.type}</td>
-                                  <td className="py-3 text-center text-slate-400">×</td>
-                                  <td className="py-3 text-center">
+                                <tr key={row.id} className="border-b border-slate-50">
+                                  <td className="py-4 text-slate-500 font-medium">{t(row.location, isTamil)}</td>
+                                  <td className="py-4 text-slate-700 font-semibold">{t(row.type, isTamil)}</td>
+                                  <td className="py-4 text-center text-slate-400">×</td>
+                                  <td className="py-4 text-center">
                                     <input
                                       type="number"
                                       min={0}
                                       value={qty === 0 ? "" : qty}
-                                      onChange={e => setSeating(prev => ({ ...prev, [row.key]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                      onChange={e => setSeating(prev => ({ ...prev, [row.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
                                       placeholder="0"
-                                      className="w-20 text-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                                      className="w-24 text-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
                                     />
                                   </td>
-                                  <td className="py-3 text-center text-slate-400">=</td>
-                                  <td className="py-3 text-right font-bold text-slate-800">{result > 0 ? result : "—"}</td>
+                                  <td className="py-4 text-center text-slate-400">=</td>
+                                  <td className="py-4 text-right font-bold text-slate-800">{result > 0 ? result : "—"}</td>
                                 </tr>
                               );
                             })}
                           </tbody>
                           <tfoot>
                             <tr className="border-t-2 border-slate-200">
-                              <td colSpan={5} className="pt-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Total</td>
-                              <td className="pt-3 text-right text-xl font-extrabold text-teal-600">{total > 0 ? total : "—"}</td>
+                              <td colSpan={5} className="pt-4 text-sm font-bold text-slate-700 uppercase tracking-wide">Total</td>
+                              <td className="pt-4 text-right text-xl font-extrabold text-teal-600">{total > 0 ? total : "—"}</td>
                             </tr>
                           </tfoot>
                         </table>

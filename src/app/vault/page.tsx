@@ -6,6 +6,7 @@ import { Search, Printer, Edit, History, Copy, Trash2, X, Truck } from "lucide-r
 import { cn } from "@/utils/cn";
 import { useJobs } from "@/context/JobsContext";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
+import { DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { JobCard } from "@/data/mockKanbanData";
 import { t } from "@/data/translation";
 
@@ -148,6 +149,56 @@ export default function VaultPage() {
                   });
                 })()}
               </div>
+
+              {/* Seating Capacity */}
+              {printJob?.seatingCapacity && Object.values(printJob.seatingCapacity).some(v => v > 0) && (() => {
+                const seatingRows = profiles[printJob.model]?.seatingRows ?? DEFAULT_SEATING_ROWS;
+                const entries = Object.entries(printJob.seatingCapacity).filter(([, v]) => v > 0);
+                const total = entries.reduce((sum, [id, qty]) => {
+                  const row = seatingRows.find(r => r.id === id);
+                  return sum + qty * (row?.multiplier ?? 1);
+                }, 0);
+                return (
+                  <div className="mt-8 break-inside-avoid">
+                    <p className="text-sm font-bold uppercase tracking-wide mb-3 border-b border-slate-300 pb-1">Seating Capacity</p>
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="text-xs text-slate-500 uppercase">
+                          <th className="text-left pb-1 font-semibold">Location</th>
+                          <th className="text-left pb-1 font-semibold">Type</th>
+                          <th className="text-center pb-1 font-semibold">×</th>
+                          <th className="text-center pb-1 font-semibold">Rows</th>
+                          <th className="text-center pb-1 font-semibold">=</th>
+                          <th className="text-right pb-1 font-semibold">Seats</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {entries.map(([id, qty]) => {
+                          const row = seatingRows.find(r => r.id === id);
+                          const label = row ? `${row.location} — ${row.type}` : id;
+                          const mul = row?.multiplier ?? 1;
+                          return (
+                            <tr key={id} className="border-t border-slate-100">
+                              <td className="py-1">{row?.location ?? id}</td>
+                              <td className="py-1">{row?.type ?? ""}</td>
+                              <td className="py-1 text-center text-slate-400" aria-label={label}>×</td>
+                              <td className="py-1 text-center font-bold">{qty}</td>
+                              <td className="py-1 text-center text-slate-400">=</td>
+                              <td className="py-1 text-right font-bold">{qty * mul}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-black">
+                          <td colSpan={5} className="pt-1 font-bold">Total</td>
+                          <td className="pt-1 text-right font-extrabold text-lg">{total}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                );
+              })()}
 
               {/* Extras & Terms */}
               <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">

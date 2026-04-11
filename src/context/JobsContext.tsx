@@ -78,27 +78,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
     updateJob(id, { stage: newStage });
   };
 
-  const getNextJobNumber = () => {
-    if (jobs.length === 0) return "DVN-2024-001";
-    
-    // Extract numbers from jobNo like "DVN-2024-001"
-    const jobNumbers = jobs
-      .map(j => {
-        const match = j.jobNo.match(/(\d+)$/);
-        return match ? parseInt(match[1]) : 0;
-      })
-      .filter(n => !isNaN(n));
-    
-    const maxNum = jobNumbers.length > 0 ? Math.max(...jobNumbers) : 0;
-    const nextNum = (maxNum + 1).toString().padStart(3, '0');
-    
-    // Maintain the prefix DVN-2024- or whatever is standard
-    const lastJob = jobs[jobs.length - 1];
-    const prefixMatch = lastJob.jobNo.match(/^(.*-)/);
-    const prefix = prefixMatch ? prefixMatch[1] : "DVN-2024-";
-    
-    return `${prefix}${nextNum}`;
-  };
+  const getNextJobNumber = () => "";
 
   return (
     <JobsContext.Provider

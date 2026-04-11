@@ -1,5 +1,21 @@
 export type FieldOption = string;
 
+export interface SeatingRowConfig {
+  id: string;
+  location: string;
+  type: string;
+  multiplier: number;
+}
+
+export const DEFAULT_SEATING_ROWS: SeatingRowConfig[] = [
+  { id: "rh-side-3-pass",    location: "Rh Side",  type: "3 Pass", multiplier: 3 },
+  { id: "rh-side-2-plus-1",  location: "Rh Side",  type: "2+1",    multiplier: 3 },
+  { id: "lh-side-2-pass",    location: "Lh Side",  type: "2 Pass", multiplier: 2 },
+  { id: "platform-2-pass",   location: "Platform", type: "2 Pass", multiplier: 2 },
+  { id: "platform-1-plus-1", location: "Platform", type: "1+1",    multiplier: 2 },
+  { id: "platform-1-pass",   location: "Platform", type: "1 Pass", multiplier: 1 },
+];
+
 export interface Category {
   id: string;
   name: string;
