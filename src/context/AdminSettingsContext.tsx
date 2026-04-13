@@ -18,6 +18,7 @@ export interface BusModelProfile {
   specGroups: SpecCategoryGroup[];
   standardSelections: Record<string, string>;
   extrasPricing: Record<string, number>;
+  structurePricing: Record<string, number>; // key = "fieldId:optionValue"
   seatingRows: SeatingRowConfig[];
 }
 
@@ -28,6 +29,7 @@ interface AdminContextType {
   removeOption: (model: BaseModels, groupName: string, fieldId: string, option: string) => void;
   setStandardSelection: (model: BaseModels, categoryName: string, option: string) => void;
   updateExtraPrice: (model: BaseModels, itemId: string, price: number) => void;
+  updateStructurePrice: (model: BaseModels, fieldId: string, optionValue: string, price: number) => void;
   addExtraItem: (model: BaseModels, name: string, price: number) => void;
   removeExtraItem: (model: BaseModels, fieldId: string) => void;
   addField: (model: BaseModels, groupName: string, fieldName: string) => void;
@@ -134,6 +136,50 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         localStorage.setItem(SEATING_ROWS_MIGRATION_KEY, "true");
       }
 
+      // ─── Kerala Series Init (v7) ──────────────────────────────────────────
+      // Adds Kerala Series profile and structurePricing to existing installs.
+      const KERALA_MIGRATION_KEY = "dvn-v7-kerala-series";
+      const hasKerala = localStorage.getItem(KERALA_MIGRATION_KEY);
+      if (!hasKerala) {
+        // Add structurePricing to existing 4 models
+        const existingModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
+        existingModels.forEach(model => {
+          if (currentProfiles[model] && !currentProfiles[model].structurePricing) {
+            currentProfiles[model] = { ...currentProfiles[model], structurePricing: {} };
+          }
+        });
+        // Create Kerala Series if missing
+        if (!currentProfiles["Kerala Series"]) {
+          const keralaSpecGroups = structuredClone(SPEC_CONFIGURATOR);
+          const keralaStructure = keralaSpecGroups.find((g: SpecCategoryGroup) => g.groupName === "STRUCTURE");
+          if (keralaStructure) {
+            const wbField = keralaStructure.fields.find((f: Category) => f.id === "wheel-base");
+            if (wbField) wbField.options = ["5200mm", "210\""];
+          }
+          const keralaChassis = keralaSpecGroups.find((g: SpecCategoryGroup) => g.groupName === "CHASSIS");
+          if (keralaChassis) {
+            const btField = keralaChassis.fields.find((f: Category) => f.id === "body-type");
+            if (btField && !btField.options.includes("Kerala Series")) btField.options = [...btField.options, "Kerala Series"];
+          }
+          currentProfiles["Kerala Series"] = {
+            basePrice: BUS_MODELS_BASE["Kerala Series"].basePrice,
+            specGroups: keralaSpecGroups,
+            standardSelections: structuredClone(STANDARD_VARIATIONS["Kerala Series"]),
+            extrasPricing: {
+              "art-work": 15000,
+              "audio-video": 45000,
+              "decorative-lights": 25000,
+              "stickers": 8000,
+              "bottom-aluminium-sheet-extra": 0,
+              "black-cobra-plywood-extra": 0,
+            },
+            structurePricing: { "wheel-base:210\"": 100000, "wheel-base:5200mm": 0 },
+            seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
+          };
+        }
+        localStorage.setItem(KERALA_MIGRATION_KEY, "true");
+      }
+
       // ─── Spec Groups Sync ──────────────────────────────────────────────────
       // Ensure Town/College/Staff have the same spec groups as Moffusil.
       const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
@@ -169,9 +215,38 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
             "bottom-aluminium-sheet-extra": 0,
             "black-cobra-plywood-extra": 0,
           },
+          structurePricing: {},
           seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
         };
       });
+
+      // Kerala Series — identical to Moffusil except custom wheel-base options and structurePricing
+      const keralaSpecGroups = structuredClone(SPEC_CONFIGURATOR);
+      const keralaStructure = keralaSpecGroups.find((g: SpecCategoryGroup) => g.groupName === "STRUCTURE");
+      if (keralaStructure) {
+        const wbField = keralaStructure.fields.find((f: Category) => f.id === "wheel-base");
+        if (wbField) wbField.options = ["5200mm", "210\""];
+      }
+      const keralaChassis = keralaSpecGroups.find((g: SpecCategoryGroup) => g.groupName === "CHASSIS");
+      if (keralaChassis) {
+        const btField = keralaChassis.fields.find((f: Category) => f.id === "body-type");
+        if (btField && !btField.options.includes("Kerala Series")) btField.options = [...btField.options, "Kerala Series"];
+      }
+      initialProfiles["Kerala Series"] = {
+        basePrice: BUS_MODELS_BASE["Kerala Series"].basePrice,
+        specGroups: keralaSpecGroups,
+        standardSelections: structuredClone(STANDARD_VARIATIONS["Kerala Series"]),
+        extrasPricing: {
+          "art-work": 15000,
+          "audio-video": 45000,
+          "decorative-lights": 25000,
+          "stickers": 8000,
+          "bottom-aluminium-sheet-extra": 0,
+          "black-cobra-plywood-extra": 0,
+        },
+        structurePricing: { "wheel-base:210\"": 100000, "wheel-base:5200mm": 0 },
+        seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
+      };
 
       currentProfiles = initialProfiles as Record<BaseModels, BusModelProfile>;
       localStorage.setItem(RENAME_MIGRATION_KEY, "true");
@@ -247,6 +322,14 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       newProfiles[model] = targetProfile;
       return newProfiles;
     });
+  };
+
+  const updateStructurePrice = (model: BaseModels, fieldId: string, optionValue: string, price: number) => {
+    const key = `${fieldId}:${optionValue}`;
+    setProfiles(prev => ({
+      ...prev,
+      [model]: { ...prev[model], structurePricing: { ...prev[model].structurePricing, [key]: price } }
+    }));
   };
 
   const updateExtraPrice = (model: BaseModels, itemId: string, price: number) => {
@@ -413,6 +496,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       removeOption,
       setStandardSelection,
       updateExtraPrice,
+      updateStructurePrice,
       addExtraItem,
       removeExtraItem,
       addField,

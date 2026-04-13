@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels } from "@/data/specs";
 import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
 import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
 import { ExtrasPriceTable } from "@/components/admin/ExtrasPriceTable";
+import { StructurePriceManager } from "@/components/admin/StructurePriceManager";
 import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
 import { Settings2, Bus } from "lucide-react";
 
-const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
+const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series"];
 
 export default function AdminMasterPage() {
   const { profiles, isLoaded } = useAdminSettings();
@@ -62,10 +63,13 @@ export default function AdminMasterPage() {
             basePrice={activeProfile.basePrice} 
           />
           
-          <ExtrasPriceTable 
-            model={selectedModel} 
-            extras={activeProfile.extrasPricing} 
+          <ExtrasPriceTable
+            model={selectedModel}
+            extras={activeProfile.extrasPricing}
           />
+          {selectedModel === "Kerala Series" && (
+            <StructurePriceManager model={selectedModel} />
+          )}
         </div>
 
         {/* Right Column: Spec Manager + Seating Rows */}

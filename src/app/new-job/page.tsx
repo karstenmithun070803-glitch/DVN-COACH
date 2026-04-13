@@ -273,6 +273,12 @@ function NewJobPage() {
         const price = profile.extrasPricing[fieldDef.id];
         if (price) total += price;
       }
+      if (fieldDef && profile.structurePricing) {
+        vals.forEach(val => {
+          const price = profile.structurePricing[`${fieldDef.id}:${val}`];
+          if (price) total += price;
+        });
+      }
     });
     return total;
   }, [activeModel, selections, profiles, isLoaded]);
@@ -833,6 +839,7 @@ function NewJobPage() {
                             {field.options.map(opt => {
                               const isSelected = (selections[field.name] ?? []).includes(opt);
                               const hasExtraPrice = activeProfile.extrasPricing[field.id];
+                              const structurePrice = activeProfile.structurePricing?.[`${field.id}:${opt}`];
                               return (
                                 <div
                                   key={opt}
@@ -857,6 +864,14 @@ function NewJobPage() {
                                       isSelected ? "text-teal-600" : "text-slate-400"
                                     )}>
                                       +₹{(hasExtraPrice/1000).toFixed(1)}k
+                                    </span>
+                                  )}
+                                  {structurePrice != null && structurePrice > 0 && (
+                                    <span className={cn(
+                                      "text-xs font-medium ml-4",
+                                      isSelected ? "text-teal-600" : "text-slate-400"
+                                    )}>
+                                      +₹{(structurePrice/100000).toFixed(1)}L
                                     </span>
                                   )}
                                 </div>

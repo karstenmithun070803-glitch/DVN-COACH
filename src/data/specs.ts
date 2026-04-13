@@ -29,7 +29,7 @@ export interface SpecCategoryGroup {
   fields: Category[];
 }
 
-export type BaseModels = "Moffusil" | "Town" | "College" | "Staff";
+export type BaseModels = "Moffusil" | "Town" | "College" | "Staff" | "Kerala Series";
 
 // Export standard prices baseline
 export const BUS_MODELS_BASE = {
@@ -37,6 +37,7 @@ export const BUS_MODELS_BASE = {
   "Town": { basePrice: 1400000 },
   "College": { basePrice: 1350000 },
   "Staff": { basePrice: 1600000 },
+  "Kerala Series": { basePrice: 1500000 },
 };
 
 export const SPEC_CONFIGURATOR: SpecCategoryGroup[] = [
@@ -339,5 +340,11 @@ export const STANDARD_VARIATIONS: Record<BaseModels, Record<string, string>> = {
     "Chassis Brand": "Leyland",
     "Entrance": "Rear",
     "AC": "BSBS",
+  },
+
+  "Kerala Series": {
+    ...MOFFUSIL_BASE_SELECTIONS,
+    "Body Type": "Kerala Series",
+    "Wheel Base": "5200mm",
   },
 };
