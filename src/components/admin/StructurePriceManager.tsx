@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels } from "@/data/specs";
 import { Save } from "lucide-react";
@@ -13,15 +13,33 @@ export function StructurePriceManager({ model }: StructurePriceManagerProps) {
   const { profiles, updateStructurePrice } = useAdminSettings();
   const profile = profiles[model];
   const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
+  const isFirstMount = useRef(true);
+  const draftKey = `dvn-admin-structure-draft-${model}`;
 
   useEffect(() => {
     const prices: Record<string, string> = {};
-    Object.entries(profile.structurePricing ?? {}).forEach(([key, val]) => {
-      prices[key] = val.toString();
-    });
+    Object.entries(profile.structurePricing ?? {}).forEach(([key, val]) => { prices[key] = val.toString(); });
+
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      try {
+        const draft = localStorage.getItem(draftKey);
+        if (draft) {
+          const parsed = JSON.parse(draft) as Record<string, string>;
+          Object.keys(prices).forEach(key => { if (parsed[key] !== undefined) prices[key] = parsed[key]; });
+        }
+      } catch { /* ignore */ }
+    }
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditingPrices(prices);
-  }, [profile.structurePricing]);
+  }, [profile.structurePricing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (Object.keys(editingPrices).length > 0) {
+      localStorage.setItem(draftKey, JSON.stringify(editingPrices));
+    }
+  }, [editingPrices, draftKey]);
 
   const structureGroup = profile.specGroups.find(g => g.groupName === "STRUCTURE");
   const entries = Object.keys(profile.structurePricing ?? {}).map(key => {

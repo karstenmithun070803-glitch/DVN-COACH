@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels } from "@/data/specs";
 import { Save, Plus, Trash2, X } from "lucide-react";
@@ -16,15 +16,36 @@ export function ExtrasPriceTable({ model, extras }: ExtrasPriceTableProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const isFirstMount = useRef(true);
+  const draftKey = `dvn-admin-extras-draft-${model}`;
 
+  // On first mount: restore draft merged with current saved values.
+  // On subsequent extras changes (after a Save): reset from saved values.
   useEffect(() => {
     const prices: Record<string, string> = {};
-    Object.entries(extras).forEach(([key, val]) => {
-      prices[key] = val.toString();
-    });
+    Object.entries(extras).forEach(([key, val]) => { prices[key] = val.toString(); });
+
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      try {
+        const draft = localStorage.getItem(draftKey);
+        if (draft) {
+          const parsed = JSON.parse(draft) as Record<string, string>;
+          Object.keys(prices).forEach(key => { if (parsed[key] !== undefined) prices[key] = parsed[key]; });
+        }
+      } catch { /* ignore */ }
+    }
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditingPrices(prices);
-  }, [extras]);
+  }, [extras]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft whenever editing prices change
+  useEffect(() => {
+    if (Object.keys(editingPrices).length > 0) {
+      localStorage.setItem(draftKey, JSON.stringify(editingPrices));
+    }
+  }, [editingPrices, draftKey]);
 
   const extrasGroup = profiles[model]?.specGroups.find(g => g.groupName.includes("EXTRAS"));
   const extrasFields = extrasGroup?.fields ?? [];

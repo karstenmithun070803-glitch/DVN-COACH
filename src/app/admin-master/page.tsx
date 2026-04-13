@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels } from "@/data/specs";
 import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
@@ -11,10 +11,22 @@ import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
 import { Settings2, Bus } from "lucide-react";
 
 const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series"];
+const ADMIN_DRAFT_KEY = "dvn-admin-master-draft";
 
 export default function AdminMasterPage() {
   const { profiles, isLoaded } = useAdminSettings();
-  const [selectedModel, setSelectedModel] = useState<BaseModels>("Moffusil");
+  const [selectedModel, setSelectedModel] = useState<BaseModels>(() => {
+    if (typeof window === "undefined") return "Moffusil";
+    try {
+      const saved = localStorage.getItem(ADMIN_DRAFT_KEY);
+      if (saved) return JSON.parse(saved).selectedModel ?? "Moffusil";
+    } catch { /* ignore */ }
+    return "Moffusil";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(ADMIN_DRAFT_KEY, JSON.stringify({ selectedModel }));
+  }, [selectedModel]);
 
   if (!isLoaded) {
     return (
