@@ -506,7 +506,7 @@ function NewJobPage() {
               </div>
 
               <h3 className="text-xl font-bold uppercase mb-6 text-slate-900">
-                Blueprint: {activeModel} Series
+                Blueprint: {activeModel.endsWith("Series") ? activeModel : `${activeModel} Series`}
               </h3>
 
               <div className="columns-2 gap-16 text-[15px]">
@@ -630,8 +630,8 @@ function NewJobPage() {
                   onChange={(e) => handleModelSelect(e.target.value as BaseModels)}
                   className="bg-slate-50 border border-slate-200 text-[#333333] text-sm font-bold uppercase rounded-md px-3 py-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
                 >
-                  {(["Moffusil", "Town", "College", "Staff"] as BaseModels[]).map((model) => (
-                    <option key={model} value={model}>{model} Series</option>
+                  {(["Moffusil", "Town", "College", "Staff", "Kerala Series"] as BaseModels[]).map((model) => (
+                    <option key={model} value={model}>{model.endsWith("Series") ? model : `${model} Series`}</option>
                   ))}
                 </select>
               </div>

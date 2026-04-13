@@ -48,7 +48,7 @@ export default function AdminMasterPage() {
               className="bg-transparent border-none text-slate-800 font-bold focus:ring-0 cursor-pointer pr-8"
             >
               {MODELS.map(m => (
-                <option key={m} value={m}>{m} Series</option>
+                <option key={m} value={m}>{m.endsWith("Series") ? m : `${m} Series`}</option>
               ))}
             </select>
           </div>

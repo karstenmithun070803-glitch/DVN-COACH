@@ -181,8 +181,10 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       }
 
       // ─── Spec Groups Sync ──────────────────────────────────────────────────
-      // Ensure Town/College/Staff have the same spec groups as Moffusil.
-      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff"];
+      // Ensure all models have the same spec groups as Moffusil.
+      // Kerala Series is included but gets a structuredClone so its custom
+      // wheel-base options are preserved after the admin edits them.
+      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff", "Kerala Series"];
       const moffusilGroups = currentProfiles["Moffusil"]?.specGroups;
       if (moffusilGroups) {
         modelsToCheck.forEach(model => {
