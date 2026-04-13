@@ -234,7 +234,6 @@ function SortableFieldRow({
             {...attributes}
             className="text-slate-300 hover:text-slate-500 transition-colors cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
             title="Drag to reorder"
-            onPointerDown={e => e.stopPropagation()}
           >
             <GripVertical className="w-4 h-4" />
           </button>
