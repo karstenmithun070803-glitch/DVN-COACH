@@ -457,20 +457,21 @@ function NewJobPage() {
         <>
           <style>{`
             @media print {
-              @page { margin: 1.5cm 1cm 2cm 1cm; }
-              @page :first { margin-top: 0; }
-              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; padding-top: 6pt; } }
+              @page { margin: 0; size: A4 portrait; }
+              *, *::before, *::after { box-shadow: none !important; }
+              body { display: block !important; margin: 0 !important; padding: 0 !important; }
+              main { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
             }
           `}</style>
           <div className="hidden print:block bg-white text-black font-sans">
-            <div className="p-10 pb-8">
+            <div style={{ width: "210mm", boxSizing: "border-box", padding: "10mm", margin: "0 auto" }}>
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
                 <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
                 <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
               </div>
 
-              <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
+              <div className="flex justify-between gap-12 text-sm border-b border-slate-300 pb-8 mb-8">
                 <div className="flex flex-col gap-5 w-1/2">
                   <div className="flex w-full items-end">
                     <strong className="shrink-0 mr-3">Customer Name:</strong>
@@ -530,7 +531,7 @@ function NewJobPage() {
                           {t(key, isTamil)}
                         </span>
                         <span className={cn(
-                          "font-bold text-slate-900 text-right",
+                          "font-bold text-slate-900 text-right break-words ml-2",
                           isTamil && "font-extrabold text-[17px] tracking-wide"
                         )}>
                           {vals.map(v => t(v, isTamil)).join(", ")}
@@ -544,9 +545,9 @@ function NewJobPage() {
                 };
 
                 return (
-                  <div className="flex gap-16 text-[15px]">
-                    <div className="flex-1">{leftCol.map(renderRow)}</div>
-                    <div className="flex-1">{rightCol.map(renderRow)}</div>
+                  <div className="flex text-[15px]" style={{ gap: "20mm" }}>
+                    <div className="flex-1 min-w-0">{leftCol.map(renderRow)}</div>
+                    <div className="flex-1 min-w-0">{rightCol.map(renderRow)}</div>
                   </div>
                 );
               })()}
@@ -584,7 +585,7 @@ function NewJobPage() {
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-black">
+                        <tr className="border-t border-slate-400">
                           <td colSpan={5} className="pt-1 font-bold">Total</td>
                           <td className="pt-1 text-right font-extrabold text-lg">{total}</td>
                         </tr>
@@ -595,7 +596,7 @@ function NewJobPage() {
               })()}
 
               <div className="break-inside-avoid">
-                <div className="mt-10 pt-5 border-t-2 border-black">
+                <div className="mt-10 pt-5 border-t border-slate-300">
                   <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
                   <div className="text-sm mt-3">
                     <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
