@@ -458,13 +458,16 @@ function NewJobPage() {
           <style>{`
             @media print {
               @page { margin: 0; size: A4 portrait; }
-              *, *::before, *::after { box-shadow: none !important; }
-              body { display: block !important; margin: 0 !important; padding: 0 !important; }
-              main { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+              *, *::before, *::after { box-shadow: none !important; outline: none !important; }
+              html, body { display: block !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+              nav, header, footer { display: none !important; }
+              main { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; }
+              main > * { display: none !important; }
+              main > .dvn-print-root { display: block !important; }
             }
           `}</style>
-          <div className="hidden print:block bg-white text-black font-sans">
-            <div style={{ width: "210mm", boxSizing: "border-box", padding: "10mm", margin: "0 auto" }}>
+          <div className="hidden print:block dvn-print-root bg-white text-black font-sans" style={{ border: "none", outline: "none" }}>
+            <div style={{ width: "210mm", boxSizing: "border-box", paddingTop: "15mm", paddingRight: "10mm", paddingBottom: "12mm", paddingLeft: "10mm", margin: "0 auto", border: "none", outline: "none" }}>
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
                 <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
@@ -546,8 +549,8 @@ function NewJobPage() {
 
                 return (
                   <div className="flex text-[15px]" style={{ gap: "20mm" }}>
-                    <div className="flex-1 min-w-0">{leftCol.map(renderRow)}</div>
-                    <div className="flex-1 min-w-0">{rightCol.map(renderRow)}</div>
+                    <div className="flex-1 min-w-0 [&>:last-child]:border-b-0">{leftCol.map(renderRow)}</div>
+                    <div className="flex-1 min-w-0 [&>:last-child]:border-b-0">{rightCol.map(renderRow)}</div>
                   </div>
                 );
               })()}
