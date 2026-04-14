@@ -457,24 +457,20 @@ function NewJobPage() {
         <>
           <style>{`
             @media print {
-              @page { size: A4 portrait; margin: 15mm 10mm; }
-              *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; outline: none !important; }
-              html, body { display: block !important; margin: 0 !important; padding: 0 !important; background: white !important; }
-              nav, header, footer { display: none !important; }
-              main { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-              .dvn-print-root { display: block !important; }
+              @page { margin: 1.5cm 1cm 2cm 1cm; }
+              @page :first { margin-top: 0; }
+              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; border-top: 1px solid #374151; padding-top: 6pt; } }
             }
-            .dvn-print-root { display: none; }
           `}</style>
-          <div className="dvn-print-root bg-white text-black font-sans">
-            <div>
+          <div className="hidden print:block bg-white text-black font-sans">
+            <div className="p-10 pb-8">
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
                 <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
                 <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
               </div>
 
-              <div className="flex justify-between gap-12 text-sm border-b border-slate-300 pb-8 mb-8">
+              <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
                 <div className="flex flex-col gap-5 w-1/2">
                   <div className="flex w-full items-end">
                     <strong className="shrink-0 mr-3">Customer Name:</strong>
@@ -513,47 +509,37 @@ function NewJobPage() {
                 Blueprint: {activeModel.endsWith("Series") ? activeModel : `${activeModel} Series`}
               </h3>
 
-              {(() => {
-                const nameToId = Object.fromEntries(
-                  activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
-                );
-                const entries = Object.entries(selections);
-                const half = Math.ceil(entries.length / 2);
-                const leftCol = entries.slice(0, half);
-                const rightCol = entries.slice(half);
-
-                const renderRow = ([key, vals]: [string, string[]]) => {
-                  const note = fieldNotes[nameToId[key]];
-                  return (
-                    <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5">
-                      <div className="flex justify-between items-end">
-                        <span className={cn(
-                          "text-slate-600 uppercase font-semibold text-xs tracking-wider",
-                          isTamil && "font-bold text-[14px]"
-                        )}>
-                          {t(key, isTamil)}
-                        </span>
-                        <span className={cn(
-                          "font-bold text-slate-900 text-right break-words ml-2",
-                          isTamil && "font-extrabold text-[17px] tracking-wide"
-                        )}>
-                          {vals.map(v => t(v, isTamil)).join(", ")}
-                        </span>
-                      </div>
-                      {note && (
-                        <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
-                      )}
-                    </div>
+              <div className="columns-2 gap-16 text-[15px]">
+                {(() => {
+                  const nameToId = Object.fromEntries(
+                    activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
                   );
-                };
-
-                return (
-                  <div className="flex text-[15px]" style={{ gap: "20mm" }}>
-                    <div className="flex-1 min-w-0 [&>:last-child]:border-b-0">{leftCol.map(renderRow)}</div>
-                    <div className="flex-1 min-w-0 [&>:last-child]:border-b-0">{rightCol.map(renderRow)}</div>
-                  </div>
-                );
-              })()}
+                  return Object.entries(selections).map(([key, vals]) => {
+                    const note = fieldNotes[nameToId[key]];
+                    return (
+                      <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5">
+                        <div className="flex justify-between items-end">
+                          <span className={cn(
+                            "text-slate-600 uppercase font-semibold text-xs tracking-wider",
+                            isTamil && "font-bold text-[14px]"
+                          )}>
+                            {t(key, isTamil)}
+                          </span>
+                          <span className={cn(
+                            "font-bold text-slate-900 text-right",
+                            isTamil && "font-extrabold text-[17px] tracking-wide"
+                          )}>
+                            {vals.map(v => t(v, isTamil)).join(", ")}
+                          </span>
+                        </div>
+                        {note && (
+                          <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
 
               {Object.values(seating).some(v => v > 0) && (() => {
                 const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
@@ -588,7 +574,7 @@ function NewJobPage() {
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t border-slate-400">
+                        <tr className="border-t-2 border-black">
                           <td colSpan={5} className="pt-1 font-bold">Total</td>
                           <td className="pt-1 text-right font-extrabold text-lg">{total}</td>
                         </tr>
@@ -598,31 +584,29 @@ function NewJobPage() {
                 );
               })()}
 
-              <div className="break-inside-avoid">
-                <div className="mt-10 pt-5 border-t border-slate-300">
-                  <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
-                  <div className="text-sm mt-3">
-                    <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
-                    <ul className="mt-1 space-y-1 list-none">
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
-                    </ul>
-                  </div>
+              <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">
+                <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
+                <div className="text-sm mt-3">
+                  <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
+                  <ul className="mt-1 space-y-1 list-none">
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
+                    <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
+                  </ul>
                 </div>
+              </div>
 
-                <div className="mt-12 grid grid-cols-2">
-                  <div>
-                    <p className="text-sm">Customer Sign</p>
-                    <div style={{ height: "50px" }} />
-                    <p className="text-sm">Date:</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm">for Durga Industries</p>
-                    <div style={{ height: "50px" }} />
-                    <p className="text-sm">Manager</p>
-                  </div>
+              <div className="mt-12 grid grid-cols-2 break-inside-avoid">
+                <div>
+                  <p className="text-sm">Customer Sign</p>
+                  <div style={{ height: "50px" }} />
+                  <p className="text-sm">Date:</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm">for Durga Industries</p>
+                  <div style={{ height: "50px" }} />
+                  <p className="text-sm">Manager</p>
                 </div>
               </div>
 
