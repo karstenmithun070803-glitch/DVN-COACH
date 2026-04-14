@@ -458,12 +458,7 @@ function NewJobPage() {
           <style>{`
             @media print {
               @page { size: A4 portrait; margin: 15mm 10mm; }
-              *, *::before, *::after {
-                box-shadow: none !important;
-                text-shadow: none !important;
-                -webkit-print-color-adjust: economy !important;
-                print-color-adjust: economy !important;
-              }
+              *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; outline: none !important; }
               html, body { display: block !important; margin: 0 !important; padding: 0 !important; background: white !important; }
               nav, header, footer { display: none !important; }
               main { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }

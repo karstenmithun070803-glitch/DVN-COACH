@@ -23,9 +23,6 @@
 }
 
 @media print {
-  @page { 
-    margin: 0; 
-  }
   html, body {
     height: auto !important;
     overflow: visible !important;
