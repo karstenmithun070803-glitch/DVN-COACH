@@ -21,7 +21,7 @@ export function Navigation() {
 
           {/* Shield Logo */}
           <Image
-            src="/images/dvn-logo.png"
+            src="/images/dvn-logo-2.png"
             alt="DVN Coach Warriors"
             width={52}
             height={60}
@@ -63,7 +63,7 @@ export function Navigation() {
       <div className="sm:hidden">
         <div className="flex items-center gap-3 px-4 pt-3 pb-2">
           <Image
-            src="/images/dvn-logo.png"
+            src="/images/dvn-logo-2.png"
             alt="DVN Coach Warriors"
             width={32}
             height={37}

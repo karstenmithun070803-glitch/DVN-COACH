@@ -638,7 +638,7 @@ function NewJobPage() {
               <div className="h-48 w-full relative flex items-center justify-center p-4 bg-slate-50/50">
                 <div className="relative w-[90%] h-full flex items-center justify-center">
                   <Image
-                    src={`/images/${activeModel}.png`}
+                    src={`/images/${activeModel === "Kerala Series" ? "Moffusil" : activeModel}.png`}
                     alt={`${activeModel} Bus Image`}
                     fill
                     className="object-contain drop-shadow-md mix-blend-multiply transition-transform duration-300 hover:scale-105"
