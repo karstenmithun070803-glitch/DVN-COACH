@@ -19,6 +19,14 @@ export const metadata: Metadata = {
   title: "DVN Coach CRM",
   description: "Offline-first Workshop Configurator",
   manifest: "/manifest.json",
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "DVN CRM",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
