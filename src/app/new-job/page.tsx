@@ -457,8 +457,13 @@ function NewJobPage() {
         <>
           <style>{`
             @media print {
-              @page { margin: 0; size: A4 portrait; }
-              *, *::before, *::after { box-shadow: none !important; }
+              @page { size: A4 portrait; margin: 15mm 10mm; }
+              *, *::before, *::after {
+                box-shadow: none !important;
+                text-shadow: none !important;
+                -webkit-print-color-adjust: economy !important;
+                print-color-adjust: economy !important;
+              }
               html, body { display: block !important; margin: 0 !important; padding: 0 !important; background: white !important; }
               nav, header, footer { display: none !important; }
               main { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
@@ -467,7 +472,7 @@ function NewJobPage() {
             .dvn-print-root { display: none; }
           `}</style>
           <div className="dvn-print-root bg-white text-black font-sans">
-            <div style={{ width: "210mm", boxSizing: "border-box", paddingTop: "15mm", paddingRight: "10mm", paddingBottom: "10mm", paddingLeft: "10mm", margin: "0 auto" }}>
+            <div>
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
                 <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
