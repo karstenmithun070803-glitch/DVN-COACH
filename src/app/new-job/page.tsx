@@ -459,7 +459,7 @@ function NewJobPage() {
             @media print {
               @page { margin: 1.5cm 1cm 2cm 1cm; }
               @page :first { margin-top: 0; }
-              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; border-top: 1px solid #374151; padding-top: 6pt; } }
+              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; padding-top: 6pt; } }
             }
           `}</style>
           <div className="hidden print:block bg-white text-black font-sans">
@@ -509,37 +509,47 @@ function NewJobPage() {
                 Blueprint: {activeModel.endsWith("Series") ? activeModel : `${activeModel} Series`}
               </h3>
 
-              <div className="columns-2 gap-16 text-[15px]">
-                {(() => {
-                  const nameToId = Object.fromEntries(
-                    activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
-                  );
-                  return Object.entries(selections).map(([key, vals]) => {
-                    const note = fieldNotes[nameToId[key]];
-                    return (
-                      <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5">
-                        <div className="flex justify-between items-end">
-                          <span className={cn(
-                            "text-slate-600 uppercase font-semibold text-xs tracking-wider",
-                            isTamil && "font-bold text-[14px]"
-                          )}>
-                            {t(key, isTamil)}
-                          </span>
-                          <span className={cn(
-                            "font-bold text-slate-900 text-right",
-                            isTamil && "font-extrabold text-[17px] tracking-wide"
-                          )}>
-                            {vals.map(v => t(v, isTamil)).join(", ")}
-                          </span>
-                        </div>
-                        {note && (
-                          <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
-                        )}
+              {(() => {
+                const nameToId = Object.fromEntries(
+                  activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
+                );
+                const entries = Object.entries(selections);
+                const half = Math.ceil(entries.length / 2);
+                const leftCol = entries.slice(0, half);
+                const rightCol = entries.slice(half);
+
+                const renderRow = ([key, vals]: [string, string[]]) => {
+                  const note = fieldNotes[nameToId[key]];
+                  return (
+                    <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5">
+                      <div className="flex justify-between items-end">
+                        <span className={cn(
+                          "text-slate-600 uppercase font-semibold text-xs tracking-wider",
+                          isTamil && "font-bold text-[14px]"
+                        )}>
+                          {t(key, isTamil)}
+                        </span>
+                        <span className={cn(
+                          "font-bold text-slate-900 text-right",
+                          isTamil && "font-extrabold text-[17px] tracking-wide"
+                        )}>
+                          {vals.map(v => t(v, isTamil)).join(", ")}
+                        </span>
                       </div>
-                    );
-                  });
-                })()}
-              </div>
+                      {note && (
+                        <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
+                      )}
+                    </div>
+                  );
+                };
+
+                return (
+                  <div className="flex gap-16 text-[15px]">
+                    <div className="flex-1">{leftCol.map(renderRow)}</div>
+                    <div className="flex-1">{rightCol.map(renderRow)}</div>
+                  </div>
+                );
+              })()}
 
               {Object.values(seating).some(v => v > 0) && (() => {
                 const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
@@ -584,29 +594,31 @@ function NewJobPage() {
                 );
               })()}
 
-              <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">
-                <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
-                <div className="text-sm mt-3">
-                  <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
-                  <ul className="mt-1 space-y-1 list-none">
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
-                  </ul>
+              <div className="break-inside-avoid">
+                <div className="mt-10 pt-5 border-t-2 border-black">
+                  <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
+                  <div className="text-sm mt-3">
+                    <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
+                    <ul className="mt-1 space-y-1 list-none">
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-12 grid grid-cols-2 break-inside-avoid">
-                <div>
-                  <p className="text-sm">Customer Sign</p>
-                  <div style={{ height: "50px" }} />
-                  <p className="text-sm">Date:</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm">for Durga Industries</p>
-                  <div style={{ height: "50px" }} />
-                  <p className="text-sm">Manager</p>
+                <div className="mt-12 grid grid-cols-2">
+                  <div>
+                    <p className="text-sm">Customer Sign</p>
+                    <div style={{ height: "50px" }} />
+                    <p className="text-sm">Date:</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm">for Durga Industries</p>
+                    <div style={{ height: "50px" }} />
+                    <p className="text-sm">Manager</p>
+                  </div>
                 </div>
               </div>
 
