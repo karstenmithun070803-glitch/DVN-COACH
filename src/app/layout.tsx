@@ -4,6 +4,8 @@ import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
 import { AdminSettingsProvider } from "@/context/AdminSettingsContext";
 import { JobsProvider } from "@/context/JobsContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { AuthGate } from "@/components/auth/AuthGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,18 +48,22 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body 
+      <body
         className="min-h-screen flex flex-col bg-white text-slate-900"
         suppressHydrationWarning
       >
-        <AdminSettingsProvider>
-          <JobsProvider>
-            <Navigation />
-            <main className="flex-1 max-w-7xl w-full mx-auto">
-              {children}
-            </main>
-          </JobsProvider>
-        </AdminSettingsProvider>
+        <AuthProvider>
+          <AuthGate>
+            <AdminSettingsProvider>
+              <JobsProvider>
+                <Navigation />
+                <main className="flex-1 max-w-7xl w-full mx-auto">
+                  {children}
+                </main>
+              </JobsProvider>
+            </AdminSettingsProvider>
+          </AuthGate>
+        </AuthProvider>
       </body>
     </html>
   );
