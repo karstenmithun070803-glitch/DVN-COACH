@@ -518,8 +518,8 @@ function NewJobPage() {
               </h3>
 
               {(() => {
-                const nameToId = Object.fromEntries(
-                  activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
+                const fieldMap = Object.fromEntries(
+                  activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f])
                 );
                 const entries = Object.entries(selections);
                 const half = Math.ceil(entries.length / 2);
@@ -530,7 +530,8 @@ function NewJobPage() {
                   <table className="w-full border-collapse text-[13px]">
                     <tbody>
                       {col.map(([key, vals]) => {
-                        const note = fieldNotes[nameToId[key]];
+                        const field = fieldMap[key];
+                        const note = field?.noteEnabled ? fieldNotes[field.id] : undefined;
                         return (
                           <tr key={key} className="break-inside-avoid">
                             <td className={cn(
