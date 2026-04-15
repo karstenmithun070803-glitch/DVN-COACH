@@ -457,20 +457,21 @@ function NewJobPage() {
         <>
           <style>{`
             @media print {
-              @page { margin: 1.5cm 1cm 2cm 1cm; }
-              @page :first { margin-top: 0; }
-              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; border-top: 1px solid #374151; padding-top: 6pt; } }
+              @page { margin: 1cm; }
+              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; } }
+              html, body { background: white !important; }
+              * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           `}</style>
           <div className="hidden print:block bg-white text-black font-sans">
-            <div className="p-10 pb-8">
+            <div className="px-2 py-6">
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
                 <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
                 <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
               </div>
 
-              <div className="flex justify-between gap-12 text-sm border-b-2 border-black pb-8 mb-8">
+              <div className="flex justify-between gap-12 text-sm border-b border-slate-400 pb-5 mb-5">
                 <div className="flex flex-col gap-5 w-1/2">
                   <div className="flex w-full items-end">
                     <strong className="shrink-0 mr-3">Customer Name:</strong>
@@ -505,41 +506,54 @@ function NewJobPage() {
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold uppercase mb-6 text-slate-900">
+              <h3 className="text-lg font-bold uppercase mb-3 text-slate-900">
                 Blueprint: {activeModel.endsWith("Series") ? activeModel : `${activeModel} Series`}
               </h3>
 
-              <div className="columns-2 gap-16 text-[15px]">
-                {(() => {
-                  const nameToId = Object.fromEntries(
-                    activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
-                  );
-                  return Object.entries(selections).map(([key, vals]) => {
-                    const note = fieldNotes[nameToId[key]];
-                    return (
-                      <div key={key} className="break-inside-avoid mb-4 border-b border-slate-200 pb-1.5">
-                        <div className="flex justify-between items-end">
-                          <span className={cn(
-                            "text-slate-600 uppercase font-semibold text-xs tracking-wider",
-                            isTamil && "font-bold text-[14px]"
-                          )}>
-                            {t(key, isTamil)}
-                          </span>
-                          <span className={cn(
-                            "font-bold text-slate-900 text-right",
-                            isTamil && "font-extrabold text-[17px] tracking-wide"
-                          )}>
-                            {vals.map(v => t(v, isTamil)).join(", ")}
-                          </span>
-                        </div>
-                        {note && (
-                          <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
+              {(() => {
+                const nameToId = Object.fromEntries(
+                  activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f.id])
+                );
+                const entries = Object.entries(selections);
+                const half = Math.ceil(entries.length / 2);
+                const leftCol = entries.slice(0, half);
+                const rightCol = entries.slice(half);
+
+                const renderTable = (col: [string, string[]][]) => (
+                  <table className="w-full border-collapse text-[13px]">
+                    <tbody>
+                      {col.map(([key, vals]) => {
+                        const note = fieldNotes[nameToId[key]];
+                        return (
+                          <tr key={key} className="break-inside-avoid">
+                            <td className={cn(
+                              "py-[3px] pr-2 align-top font-semibold uppercase text-slate-700 whitespace-nowrap",
+                              isTamil && "font-bold text-[13px]"
+                            )}>
+                              {t(key, isTamil)}
+                            </td>
+                            <td className="py-[3px] px-1 align-top text-slate-500 font-normal">:</td>
+                            <td className={cn(
+                              "py-[3px] pl-1 align-top font-bold text-slate-900",
+                              isTamil && "font-extrabold text-[14px]"
+                            )}>
+                              {vals.map(v => t(v, isTamil)).join(", ")}
+                              {note && <span className="block text-xs text-slate-500 font-normal mt-0.5 whitespace-pre-wrap">{note}</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+
+                return (
+                  <div className="flex gap-10">
+                    <div className="flex-1">{renderTable(leftCol)}</div>
+                    <div className="flex-1">{renderTable(rightCol)}</div>
+                  </div>
+                );
+              })()}
 
               {Object.values(seating).some(v => v > 0) && (() => {
                 const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
@@ -549,7 +563,7 @@ function NewJobPage() {
                 const total = printRows.reduce((s, r) => s + r.qty * r.mul, 0);
                 return (
                   <div className="mt-8 break-inside-avoid">
-                    <p className="text-sm font-bold uppercase tracking-wide mb-3 border-b border-slate-300 pb-1">{t("Seating Capacity", isTamil)}</p>
+                    <p className="text-sm font-bold uppercase tracking-wide mb-3 pb-1">{t("Seating Capacity", isTamil)}</p>
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="text-xs text-slate-500 uppercase">
@@ -574,7 +588,7 @@ function NewJobPage() {
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-black">
+                        <tr className="border-t border-slate-400">
                           <td colSpan={5} className="pt-1 font-bold">Total</td>
                           <td className="pt-1 text-right font-extrabold text-lg">{total}</td>
                         </tr>
@@ -584,29 +598,30 @@ function NewJobPage() {
                 );
               })()}
 
-              <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">
-                <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
-                <div className="text-sm mt-3">
-                  <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
-                  <ul className="mt-1 space-y-1 list-none">
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
-                    <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
-                  </ul>
+              <div className="break-inside-avoid mt-8">
+                <div className="pt-4 border-t border-slate-400">
+                  <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
+                  <div className="text-sm mt-2">
+                    <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
+                    <ul className="mt-1 space-y-0.5 list-none">
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-
-              <div className="mt-12 grid grid-cols-2 break-inside-avoid">
-                <div>
-                  <p className="text-sm">Customer Sign</p>
-                  <div style={{ height: "50px" }} />
-                  <p className="text-sm">Date:</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm">for Durga Industries</p>
-                  <div style={{ height: "50px" }} />
-                  <p className="text-sm">Manager</p>
+                <div className="mt-8 grid grid-cols-2">
+                  <div>
+                    <p className="text-sm">Customer Sign</p>
+                    <div style={{ height: "50px" }} />
+                    <p className="text-sm">Date:</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm">for Durga Industries</p>
+                    <div style={{ height: "50px" }} />
+                    <p className="text-sm">Manager</p>
+                  </div>
                 </div>
               </div>
 
