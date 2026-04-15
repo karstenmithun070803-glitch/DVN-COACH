@@ -471,7 +471,23 @@ function NewJobPage() {
             }
           `}</style>
           <div className="hidden print:block bg-white text-black font-sans">
-            <div className="px-2 py-6">
+            {/* Watermark — position:fixed repeats on every printed page */}
+            <div style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%) rotate(-45deg)",
+              width: "160mm",
+              height: "160mm",
+              backgroundImage: "url('/images/dvn-logo-2.png')",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              backgroundSize: "contain",
+              opacity: 0.07,
+              zIndex: 0,
+              pointerEvents: "none",
+            }} />
+            <div className="px-2 py-6" style={{ position: "relative", zIndex: 1 }}>
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
                 <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
