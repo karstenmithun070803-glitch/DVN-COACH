@@ -457,8 +457,15 @@ function NewJobPage() {
         <>
           <style>{`
             @media print {
-              @page { margin: 1cm; }
-              @page { @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; } }
+              @page {
+                margin: 1cm;
+                @top-left { content: ""; }
+                @top-center { content: ""; }
+                @top-right { content: ""; }
+                @bottom-left { content: ""; }
+                @bottom-center { content: ""; }
+                @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; }
+              }
               html, body { background: white !important; }
               * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
