@@ -529,55 +529,42 @@ function NewJobPage() {
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold uppercase mb-3 text-slate-900">
-                Blueprint: {activeModel.endsWith("Series") ? activeModel : `${activeModel} Series`}
-              </h3>
-
-              {(() => {
-                const fieldMap = Object.fromEntries(
-                  activeProfile.specGroups.flatMap(g => g.fields).map(f => [f.name, f])
-                );
-                const entries = Object.entries(selections);
-                const half = Math.ceil(entries.length / 2);
-                const leftCol = entries.slice(0, half);
-                const rightCol = entries.slice(half);
-
-                const renderTable = (col: [string, string[]][]) => (
-                  <table className="w-full border-collapse text-[13px]">
-                    <tbody>
-                      {col.map(([key, vals]) => {
-                        const field = fieldMap[key];
-                        const note = field?.noteEnabled ? fieldNotes[field.id] : undefined;
-                        return (
-                          <tr key={key} className="break-inside-avoid">
-                            <td className={cn(
-                              "py-[3px] pr-2 align-top font-semibold uppercase text-slate-700 whitespace-nowrap",
-                              isTamil && "font-bold text-[13px]"
-                            )}>
-                              {t(key, isTamil)}
-                            </td>
-                            <td className="py-[3px] px-1 align-top text-slate-500 font-normal">:</td>
-                            <td className={cn(
-                              "py-[3px] pl-1 align-top font-bold text-slate-900",
-                              isTamil && "font-extrabold text-[14px]"
-                            )}>
-                              {vals.map(v => t(v, isTamil)).join(", ")}
-                              {note && <span className="block text-xs text-slate-500 font-normal mt-0.5 whitespace-pre-wrap">{note}</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                );
-
+              {activeProfile.specGroups.map(group => {
+                const groupFields = group.fields.filter(f => selections[f.name]);
+                if (groupFields.length === 0) return null;
                 return (
-                  <div className="flex gap-10">
-                    <div className="flex-1">{renderTable(leftCol)}</div>
-                    <div className="flex-1">{renderTable(rightCol)}</div>
+                  <div key={group.groupName} className="mt-4">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-1 break-after-avoid">
+                      {t(group.groupName, isTamil)}
+                    </p>
+                    <table className="w-full border-collapse text-[13px]">
+                      <tbody>
+                        {groupFields.map(field => {
+                          const note = field.noteEnabled ? fieldNotes[field.id] : undefined;
+                          return (
+                            <tr key={field.id} className="break-inside-avoid">
+                              <td className={cn(
+                                "py-[3px] pr-3 align-top font-semibold uppercase text-slate-700 whitespace-nowrap w-[38%]",
+                                isTamil && "font-bold text-[13px]"
+                              )}>
+                                {t(field.name, isTamil)}
+                              </td>
+                              <td className="py-[3px] px-1 align-top text-slate-500 font-normal">:</td>
+                              <td className={cn(
+                                "py-[3px] pl-1 align-top font-bold text-slate-900",
+                                isTamil && "font-extrabold text-[14px]"
+                              )}>
+                                {selections[field.name].map((v: string) => t(v, isTamil)).join(", ")}
+                                {note && <span className="block text-xs text-slate-500 font-normal mt-0.5 whitespace-pre-wrap">{note}</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 );
-              })()}
+              })}
 
               {Object.values(seating).some(v => v > 0) && (() => {
                 const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
@@ -587,7 +574,7 @@ function NewJobPage() {
                 const total = printRows.reduce((s, r) => s + r.qty * r.mul, 0);
                 return (
                   <div className="mt-8 break-inside-avoid">
-                    <p className="text-sm font-bold uppercase tracking-wide mb-3 pb-1">{t("Seating Capacity", isTamil)}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-1 break-after-avoid">{t("Seating Capacity", isTamil)}</p>
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="text-xs text-slate-500 uppercase">
@@ -623,10 +610,12 @@ function NewJobPage() {
               })()}
 
               <div className="break-inside-avoid mt-8">
-                <div className="pt-4 border-t border-slate-400">
-                  <p className="text-sm"><span className="underline font-semibold">Extras:</span> 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
+                <div className="pt-4 border-t border-slate-300">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-2">
+                    Extras &amp; Terms
+                  </p>
+                  <p className="text-sm">1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
                   <div className="text-sm mt-2">
-                    <p className="font-bold underline" style={{ fontStyle: "italic" }}>Note:</p>
                     <ul className="mt-1 space-y-0.5 list-none">
                       <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
                       <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
