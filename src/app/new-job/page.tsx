@@ -479,7 +479,7 @@ function NewJobPage() {
               transform: "translate(-50%, -50%) rotate(-45deg)",
               width: "160mm",
               height: "160mm",
-              opacity: 0.08,
+              opacity: 0.04,
               zIndex: 0,
               pointerEvents: "none",
             }}>
