@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense, Fragment } from "react";
 import { ChevronDown, ChevronUp, Printer, User, Hash, Phone, Key, Calendar, Settings, MapPin, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -479,14 +479,13 @@ function NewJobPage() {
               transform: "translate(-50%, -50%) rotate(-45deg)",
               width: "160mm",
               height: "160mm",
-              backgroundImage: "url('/images/dvn-logo-2.png')",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center",
-              backgroundSize: "contain",
-              opacity: 0.07,
+              opacity: 0.08,
               zIndex: 0,
               pointerEvents: "none",
-            }} />
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/dvn-logo-2.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            </div>
             <div className="px-2 py-6" style={{ position: "relative", zIndex: 1 }}>
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
@@ -529,22 +528,26 @@ function NewJobPage() {
                 </div>
               </div>
 
-              {activeProfile.specGroups.map(group => {
-                const groupFields = group.fields.filter(f => selections[f.name]);
-                if (groupFields.length === 0) return null;
-                return (
-                  <div key={group.groupName} className="mt-4">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-1 break-after-avoid">
-                      {t(group.groupName, isTamil)}
-                    </p>
-                    <table className="w-full border-collapse text-[13px]">
-                      <tbody>
+              <table className="w-full border-collapse text-[13px]">
+                <tbody>
+                  {activeProfile.specGroups.map(group => {
+                    const groupFields = group.fields.filter(f => selections[f.name]);
+                    if (groupFields.length === 0) return null;
+                    return (
+                      <Fragment key={group.groupName}>
+                        <tr className="break-after-avoid">
+                          <td colSpan={3} className="pt-4 pb-0.5 border-b border-slate-300">
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                              {t(group.groupName, isTamil)}
+                            </span>
+                          </td>
+                        </tr>
                         {groupFields.map(field => {
                           const note = field.noteEnabled ? fieldNotes[field.id] : undefined;
                           return (
                             <tr key={field.id} className="break-inside-avoid">
                               <td className={cn(
-                                "py-[3px] pr-3 align-top font-semibold uppercase text-slate-700 whitespace-nowrap w-[38%]",
+                                "py-[3px] pr-3 align-top font-semibold uppercase text-slate-700",
                                 isTamil && "font-bold text-[13px]"
                               )}>
                                 {t(field.name, isTamil)}
@@ -560,11 +563,11 @@ function NewJobPage() {
                             </tr>
                           );
                         })}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
 
               {Object.values(seating).some(v => v > 0) && (() => {
                 const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
@@ -611,11 +614,12 @@ function NewJobPage() {
 
               <div className="break-inside-avoid mt-8">
                 <div className="pt-4 border-t border-slate-300">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-2">
-                    Extras &amp; Terms
+                  <p className="text-sm">
+                    <span className="font-bold underline">Extras:</span>
+                    &nbsp; 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers
                   </p>
-                  <p className="text-sm">1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers</p>
                   <div className="text-sm mt-2">
+                    <p className="font-bold underline italic">Note:</p>
                     <ul className="mt-1 space-y-0.5 list-none">
                       <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
                       <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
