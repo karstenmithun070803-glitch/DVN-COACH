@@ -45,6 +45,97 @@ const fmtPrice = (p: number) => {
   return `${abs}`;
 };
 
+type PendingAction =
+  | { type: "option"; groupName: string; fieldId: string; option: string; price: number }
+  | { type: "field"; groupName: string; fieldName: string };
+
+const ALL_MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series"];
+
+function BroadcastModal({
+  currentModel,
+  onConfirm,
+  onCancel,
+}: {
+  currentModel: BaseModels;
+  onConfirm: (targets: BaseModels[]) => void;
+  onCancel: () => void;
+}) {
+  const otherModels = ALL_MODELS.filter(m => m !== currentModel);
+  const [selected, setSelected] = useState<Set<BaseModels>>(new Set());
+
+  const allChecked = selected.size === otherModels.length;
+  const toggleAll = () =>
+    setSelected(allChecked ? new Set() : new Set(otherModels));
+  const toggle = (m: BaseModels) =>
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(m) ? next.delete(m) : next.add(m);
+      return next;
+    });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 w-full max-w-sm mx-4">
+        <h3 className="text-base font-bold text-slate-800 mb-1">Apply to other models?</h3>
+        <p className="text-xs text-slate-500 mb-4">
+          <span className="font-semibold text-teal-700">{currentModel}</span> is always updated.
+          Choose additional models below.
+        </p>
+
+        <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={allChecked}
+            onChange={toggleAll}
+            className="w-4 h-4 rounded accent-teal-600"
+          />
+          <span className="text-sm font-semibold text-slate-700">Select All</span>
+        </label>
+        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl mb-5 overflow-hidden">
+          {otherModels.map(m => (
+            <label key={m} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 select-none">
+              <input
+                type="checkbox"
+                checked={selected.has(m)}
+                onChange={() => toggle(m)}
+                className="w-4 h-4 rounded accent-teal-600"
+              />
+              <span className="text-sm text-slate-700">{m}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm([])}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-xl transition-all"
+          >
+            This model only
+          </button>
+          <button
+            onClick={() => onConfirm([...selected])}
+            disabled={selected.size === 0}
+            className={cn(
+              "flex-1 px-4 py-2.5 text-sm font-bold text-white rounded-xl transition-all",
+              selected.size > 0
+                ? "bg-teal-600 hover:bg-teal-700"
+                : "bg-teal-200 cursor-not-allowed"
+            )}
+          >
+            Broadcast
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface SortableOptionChipProps {
   option: string;
   isDefault: boolean;
@@ -215,6 +306,7 @@ interface SortableFieldRowProps {
   model: BaseModels;
   standardSelections: Record<string, string>;
   sensors: ReturnType<typeof useSensors>;
+  onRequestBroadcast: (action: PendingAction) => void;
 }
 
 function SortableFieldRow({
@@ -223,9 +315,9 @@ function SortableFieldRow({
   model,
   standardSelections,
   sensors,
+  onRequestBroadcast,
 }: SortableFieldRowProps) {
   const {
-    addOption,
     updateOptionPrice,
     removeOption,
     setStandardSelection,
@@ -260,7 +352,13 @@ function SortableFieldRow({
 
   const handleAddOption = () => {
     if (newOptionValue.trim()) {
-      addOption(model, groupName, field.id, newOptionValue.trim(), Number(newOptionPrice) || 0);
+      onRequestBroadcast({
+        type: "option",
+        groupName,
+        fieldId: field.id,
+        option: newOptionValue.trim(),
+        price: Number(newOptionPrice) || 0,
+      });
       setNewOptionValue("");
       setNewOptionPrice("");
       setAddingOption(false);
@@ -412,6 +510,7 @@ interface SortableGroupCardProps {
   isOpen: boolean;
   onToggle: () => void;
   sensors: ReturnType<typeof useSensors>;
+  onRequestBroadcast: (action: PendingAction) => void;
 }
 
 function SortableGroupCard({
@@ -421,8 +520,9 @@ function SortableGroupCard({
   isOpen,
   onToggle,
   sensors,
+  onRequestBroadcast,
 }: SortableGroupCardProps) {
-  const { reorderFields, addField } = useAdminSettings();
+  const { reorderFields } = useAdminSettings();
   const [addingField, setAddingField] = useState(false);
   const [newFieldName, setNewFieldName] = useState("");
 
@@ -437,7 +537,7 @@ function SortableGroupCard({
 
   const handleAddField = () => {
     if (newFieldName.trim()) {
-      addField(model, group.groupName, newFieldName.trim());
+      onRequestBroadcast({ type: "field", groupName: group.groupName, fieldName: newFieldName.trim() });
       setNewFieldName("");
       setAddingField(false);
     }
@@ -517,6 +617,7 @@ function SortableGroupCard({
                   model={model}
                   standardSelections={standardSelections}
                   sensors={sensors}
+                  onRequestBroadcast={onRequestBroadcast}
                 />
               ))}
             </SortableContext>
@@ -572,8 +673,22 @@ function SortableGroupCard({
 // ─── Root: SpecMasterManager ───────────────────────────────────────────────────
 
 export function SpecMasterManager({ model, specGroups, standardSelections }: SpecMasterManagerProps) {
-  const { reorderGroups } = useAdminSettings();
+  const { reorderGroups, addOption, addField } = useAdminSettings();
   const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
+  const handleBroadcastConfirm = (extraTargets: BaseModels[]) => {
+    if (!pendingAction) return;
+    const allTargets = [model, ...extraTargets];
+    allTargets.forEach(target => {
+      if (pendingAction.type === "option") {
+        addOption(target, pendingAction.groupName, pendingAction.fieldId, pendingAction.option, pendingAction.price);
+      } else {
+        addField(target, pendingAction.groupName, pendingAction.fieldName);
+      }
+    });
+    setPendingAction(null);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -600,27 +715,37 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
   };
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleGroupDragEnd}>
-      <SortableContext
-        items={specGroups.map(g => g.groupName)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="space-y-4">
-          {specGroups.map(group => (
-            <SortableGroupCard
-              key={group.groupName}
-              group={group}
-              model={model}
-              standardSelections={standardSelections}
-              isOpen={activeAccordion === group.groupName}
-              onToggle={() =>
-                setActiveAccordion(prev => (prev === group.groupName ? "" : group.groupName))
-              }
-              sensors={sensors}
-            />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <>
+      {pendingAction && (
+        <BroadcastModal
+          currentModel={model}
+          onConfirm={handleBroadcastConfirm}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
+      <DndContext sensors={sensors} onDragEnd={handleGroupDragEnd}>
+        <SortableContext
+          items={specGroups.map(g => g.groupName)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-4">
+            {specGroups.map(group => (
+              <SortableGroupCard
+                key={group.groupName}
+                group={group}
+                model={model}
+                standardSelections={standardSelections}
+                isOpen={activeAccordion === group.groupName}
+                onToggle={() =>
+                  setActiveAccordion(prev => (prev === group.groupName ? "" : group.groupName))
+                }
+                sensors={sensors}
+                onRequestBroadcast={setPendingAction}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </>
   );
 }
