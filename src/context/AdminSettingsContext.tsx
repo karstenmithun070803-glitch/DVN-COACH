@@ -327,7 +327,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         const field = group.fields.find((f: Category) => f.id === fieldId);
         if (field && !field.options.includes(option)) {
           field.options = [...field.options, option];
-          if (price && price > 0) {
+          if (price !== undefined && price !== 0) {
             if (!field.optionPricing) field.optionPricing = {};
             field.optionPricing[option] = price;
           }
@@ -346,7 +346,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       const f = g?.fields.find((f: Category) => f.id === fieldId);
       if (f) {
         if (!f.optionPricing) f.optionPricing = {};
-        if (price > 0) f.optionPricing[optionValue] = price;
+        if (price !== 0) f.optionPricing[optionValue] = price;
         else delete f.optionPricing[optionValue];
       }
       return { ...prev, [model]: p };

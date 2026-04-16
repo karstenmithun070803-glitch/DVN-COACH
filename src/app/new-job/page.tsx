@@ -13,10 +13,12 @@ import { t } from "@/data/translation";
 const DRAFT_NEW_KEY = "dvn-new-job-draft";
 const editDraftKey = (id: string) => `dvn-edit-draft-${id}`;
 
-const fmtPrice = (p: number) =>
-  p >= 100000 ? `${(p / 100000).toFixed(p % 100000 === 0 ? 0 : 1)}L`
-  : p >= 1000  ? `${(p / 1000).toFixed(p % 1000 === 0 ? 0 : 1)}k`
-  : `${p}`;
+const fmtPrice = (p: number) => {
+  const abs = Math.abs(p);
+  if (abs >= 100000) return `${(abs / 100000).toFixed(abs % 100000 === 0 ? 0 : 1)}L`;
+  if (abs >= 1000)   return `${(abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
+  return `${abs}`;
+};
 
 function wrapStandard(std: Record<string, string>): Record<string, string[]> {
   return Object.fromEntries(Object.entries(std).map(([k, v]) => [k, [v]]));
@@ -888,12 +890,14 @@ function NewJobPage() {
                                   )}>
                                     {t(opt, isTamil)}
                                   </span>
-                                  {optionPrice && optionPrice > 0 && (
+                                  {optionPrice && optionPrice !== 0 && (
                                     <span className={cn(
                                       "text-xs font-medium ml-3",
-                                      isSelected ? "text-teal-600" : "text-slate-400"
+                                      isSelected
+                                        ? optionPrice > 0 ? "text-teal-600" : "text-orange-500"
+                                        : "text-slate-400"
                                     )}>
-                                      +₹{fmtPrice(optionPrice)}
+                                      {optionPrice > 0 ? "+" : "-"}₹{fmtPrice(optionPrice)}
                                     </span>
                                   )}
                                 </div>

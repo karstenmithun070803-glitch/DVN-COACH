@@ -38,10 +38,12 @@ interface SpecMasterManagerProps {
 
 // ─── Level 1: Sortable Option Chip ────────────────────────────────────────────
 
-const fmtPrice = (p: number) =>
-  p >= 100000 ? `${(p / 100000).toFixed(p % 100000 === 0 ? 0 : 1)}L`
-  : p >= 1000  ? `${(p / 1000).toFixed(p % 1000 === 0 ? 0 : 1)}k`
-  : `${p}`;
+const fmtPrice = (p: number) => {
+  const abs = Math.abs(p);
+  if (abs >= 100000) return `${(abs / 100000).toFixed(abs % 100000 === 0 ? 0 : 1)}L`;
+  if (abs >= 1000)   return `${(abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
+  return `${abs}`;
+};
 
 interface SortableOptionChipProps {
   option: string;
@@ -157,15 +159,17 @@ function SortableOptionChip({
             onClick={() => { setPriceInput(String(optionPrice ?? "")); setEditingPrice(true); }}
             className={cn(
               "text-xs px-1.5 py-0.5 rounded transition-colors",
-              optionPrice && optionPrice > 0
-                ? "bg-teal-50 text-teal-700 font-medium border border-teal-200"
+              optionPrice && optionPrice !== 0
+                ? optionPrice > 0
+                  ? "bg-teal-50 text-teal-700 font-medium border border-teal-200"
+                  : "bg-orange-50 text-orange-600 font-medium border border-orange-200"
                 : isDefault
                   ? "text-white/50 hover:text-white hover:bg-white/10"
                   : "text-slate-300 hover:text-slate-500 hover:bg-slate-100"
             )}
             title="Set price for this option"
           >
-            {optionPrice && optionPrice > 0 ? `+₹${fmtPrice(optionPrice)}` : "+₹"}
+            {optionPrice && optionPrice !== 0 ? `${optionPrice > 0 ? "+" : "-"}₹${fmtPrice(optionPrice)}` : "+₹"}
           </button>
         )}
       </div>
@@ -360,7 +364,6 @@ function SortableFieldRow({
             onKeyDown={e => e.key === "Enter" && handleAddOption()}
             className="w-28 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
             placeholder="₹ price"
-            min={0}
           />
           <button
             onClick={handleAddOption}
