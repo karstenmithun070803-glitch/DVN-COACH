@@ -47,16 +47,20 @@ const fmtPrice = (p: number) => {
 
 type PendingAction =
   | { type: "option"; groupName: string; fieldId: string; option: string; price: number }
-  | { type: "field"; groupName: string; fieldName: string };
+  | { type: "field"; groupName: string; fieldName: string }
+  | { type: "delete-option"; groupName: string; fieldId: string; option: string }
+  | { type: "delete-field"; groupName: string; fieldId: string; fieldName: string };
 
 const ALL_MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series"];
 
 function BroadcastModal({
   currentModel,
+  isDelete,
   onConfirm,
   onCancel,
 }: {
   currentModel: BaseModels;
+  isDelete: boolean;
   onConfirm: (targets: BaseModels[]) => void;
   onCancel: () => void;
 }) {
@@ -76,11 +80,19 @@ function BroadcastModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 w-full max-w-sm mx-4">
-        <h3 className="text-base font-bold text-slate-800 mb-1">Apply to other models?</h3>
-        <p className="text-xs text-slate-500 mb-4">
-          <span className="font-semibold text-teal-700">{currentModel}</span> is always updated.
-          Choose additional models below.
+        <h3 className={cn("text-base font-bold mb-1", isDelete ? "text-rose-700" : "text-slate-800")}>
+          {isDelete ? "Delete from other models?" : "Apply to other models?"}
+        </h3>
+        <p className="text-xs text-slate-500 mb-1">
+          <span className={cn("font-semibold", isDelete ? "text-rose-600" : "text-teal-700")}>{currentModel}</span>
+          {isDelete ? " will always be affected." : " is always updated."}
+          {" "}Choose additional models below.
         </p>
+        {isDelete && (
+          <p className="text-xs text-rose-500 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2 mb-3">
+            This action cannot be undone.
+          </p>
+        )}
 
         <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
           <input
@@ -114,7 +126,10 @@ function BroadcastModal({
           </button>
           <button
             onClick={() => onConfirm([])}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-xl transition-all"
+            className={cn(
+              "flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl transition-all",
+              isDelete ? "bg-rose-500 hover:bg-rose-600" : "bg-slate-500 hover:bg-slate-600"
+            )}
           >
             This model only
           </button>
@@ -124,11 +139,11 @@ function BroadcastModal({
             className={cn(
               "flex-1 px-4 py-2.5 text-sm font-bold text-white rounded-xl transition-all",
               selected.size > 0
-                ? "bg-teal-600 hover:bg-teal-700"
-                : "bg-teal-200 cursor-not-allowed"
+                ? isDelete ? "bg-rose-600 hover:bg-rose-700" : "bg-teal-600 hover:bg-teal-700"
+                : isDelete ? "bg-rose-200 cursor-not-allowed" : "bg-teal-200 cursor-not-allowed"
             )}
           >
-            Broadcast
+            {isDelete ? "Delete from selected" : "Broadcast"}
           </button>
         </div>
       </div>
@@ -319,12 +334,10 @@ function SortableFieldRow({
 }: SortableFieldRowProps) {
   const {
     updateOptionPrice,
-    removeOption,
     setStandardSelection,
     reorderOptions,
     renameField,
     renameOption,
-    removeField,
     toggleFieldNote,
   } = useAdminSettings();
 
@@ -434,7 +447,7 @@ function SortableFieldRow({
             <Plus className="w-4 h-4" />
           </button>
           <button
-            onClick={() => removeField(model, groupName, field.id)}
+            onClick={() => onRequestBroadcast({ type: "delete-field", groupName, fieldId: field.id, fieldName: field.name })}
             className="text-slate-300 hover:text-rose-500 p-1 rounded-md hover:bg-rose-50 transition-all"
             title="Delete Spec Row"
           >
@@ -486,7 +499,7 @@ function SortableFieldRow({
                   const isActive = standardSelections[field.name] === opt;
                   setStandardSelection(model, field.name, isActive ? "" : opt);
                 }}
-                onRemove={() => removeOption(model, groupName, field.id, opt)}
+                onRemove={() => onRequestBroadcast({ type: "delete-option", groupName, fieldId: field.id, option: opt })}
                 onRename={(oldOpt, newOpt) => renameOption(model, groupName, field.id, oldOpt, newOpt)}
                 onUpdatePrice={(price) => updateOptionPrice(model, groupName, field.id, opt, price)}
               />
@@ -673,7 +686,7 @@ function SortableGroupCard({
 // ─── Root: SpecMasterManager ───────────────────────────────────────────────────
 
 export function SpecMasterManager({ model, specGroups, standardSelections }: SpecMasterManagerProps) {
-  const { reorderGroups, addOption, addField } = useAdminSettings();
+  const { reorderGroups, addOption, addField, removeOption, removeField } = useAdminSettings();
   const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
@@ -683,8 +696,12 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
     allTargets.forEach(target => {
       if (pendingAction.type === "option") {
         addOption(target, pendingAction.groupName, pendingAction.fieldId, pendingAction.option, pendingAction.price);
-      } else {
+      } else if (pendingAction.type === "field") {
         addField(target, pendingAction.groupName, pendingAction.fieldName);
+      } else if (pendingAction.type === "delete-option") {
+        removeOption(target, pendingAction.groupName, pendingAction.fieldId, pendingAction.option);
+      } else if (pendingAction.type === "delete-field") {
+        removeField(target, pendingAction.groupName, pendingAction.fieldId);
       }
     });
     setPendingAction(null);
@@ -719,6 +736,7 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
       {pendingAction && (
         <BroadcastModal
           currentModel={model}
+          isDelete={pendingAction.type === "delete-option" || pendingAction.type === "delete-field"}
           onConfirm={handleBroadcastConfirm}
           onCancel={() => setPendingAction(null)}
         />
