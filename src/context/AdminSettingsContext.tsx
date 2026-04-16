@@ -25,7 +25,8 @@ export interface BusModelProfile {
 interface AdminContextType {
   profiles: Record<BaseModels, BusModelProfile>;
   updateBasePrice: (model: BaseModels, price: number) => void;
-  addOption: (model: BaseModels, groupName: string, fieldId: string, option: string) => void;
+  addOption: (model: BaseModels, groupName: string, fieldId: string, option: string, price?: number) => void;
+  updateOptionPrice: (model: BaseModels, groupName: string, fieldId: string, optionValue: string, price: number) => void;
   removeOption: (model: BaseModels, groupName: string, fieldId: string, option: string) => void;
   setStandardSelection: (model: BaseModels, categoryName: string, option: string) => void;
   updateExtraPrice: (model: BaseModels, itemId: string, price: number) => void;
@@ -134,6 +135,47 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
           }
         });
         localStorage.setItem(SEATING_ROWS_MIGRATION_KEY, "true");
+      }
+
+      // ─── Option Pricing Migration (v8) ───────────────────────────────────
+      // Moves extrasPricing and structurePricing into optionPricing on each field.
+      const OPTION_PRICING_MIGRATION_KEY = "dvn-v8-option-pricing";
+      const hasOptionPricing = localStorage.getItem(OPTION_PRICING_MIGRATION_KEY);
+      if (!hasOptionPricing) {
+        const allModelKeys = Object.keys(currentProfiles) as BaseModels[];
+        allModelKeys.forEach(model => {
+          const prof = currentProfiles[model];
+          if (!prof) return;
+          // Migrate extrasPricing: fieldId → price for "Yes" option
+          if (prof.extrasPricing) {
+            prof.specGroups.forEach((g: SpecCategoryGroup) => {
+              g.fields.forEach((f: Category) => {
+                const ep = prof.extrasPricing[f.id];
+                if (ep && ep > 0) {
+                  if (!f.optionPricing) f.optionPricing = {};
+                  f.optionPricing["Yes"] = ep;
+                }
+              });
+            });
+          }
+          // Migrate structurePricing: "fieldId:optionValue" → price
+          if (prof.structurePricing) {
+            Object.entries(prof.structurePricing).forEach(([key, price]) => {
+              const colonIdx = key.indexOf(":");
+              if (colonIdx === -1) return;
+              const fieldId = key.slice(0, colonIdx);
+              const optionValue = key.slice(colonIdx + 1);
+              prof.specGroups.forEach((g: SpecCategoryGroup) => {
+                const f = g.fields.find((f: Category) => f.id === fieldId);
+                if (f && price > 0) {
+                  if (!f.optionPricing) f.optionPricing = {};
+                  f.optionPricing[optionValue] = price as number;
+                }
+              });
+            });
+          }
+        });
+        localStorage.setItem(OPTION_PRICING_MIGRATION_KEY, "true");
       }
 
       // ─── Kerala Series Init (v7) ──────────────────────────────────────────
@@ -274,22 +316,40 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     });
   };
 
-  const addOption = (model: BaseModels, groupName: string, fieldId: string, option: string) => {
+  const addOption = (model: BaseModels, groupName: string, fieldId: string, option: string, price?: number) => {
     setProfiles(prev => {
       const newProfiles = { ...prev };
       // Deep clone only the target model — zero bleed-through to other models
       const targetProfile = structuredClone(newProfiles[model]);
-      
+
       const group = targetProfile.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
       if (group) {
         const field = group.fields.find((f: Category) => f.id === fieldId);
         if (field && !field.options.includes(option)) {
           field.options = [...field.options, option];
+          if (price && price > 0) {
+            if (!field.optionPricing) field.optionPricing = {};
+            field.optionPricing[option] = price;
+          }
         }
       }
-      
+
       newProfiles[model] = targetProfile;
       return newProfiles;
+    });
+  };
+
+  const updateOptionPrice = (model: BaseModels, groupName: string, fieldId: string, optionValue: string, price: number) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
+      const f = g?.fields.find((f: Category) => f.id === fieldId);
+      if (f) {
+        if (!f.optionPricing) f.optionPricing = {};
+        if (price > 0) f.optionPricing[optionValue] = price;
+        else delete f.optionPricing[optionValue];
+      }
+      return { ...prev, [model]: p };
     });
   };
 
@@ -495,6 +555,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       profiles,
       updateBasePrice,
       addOption,
+      updateOptionPrice,
       removeOption,
       setStandardSelection,
       updateExtraPrice,

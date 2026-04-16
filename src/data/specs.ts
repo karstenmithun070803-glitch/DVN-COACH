@@ -22,6 +22,7 @@ export interface Category {
   nameTamil?: string; // For Admin overrides
   options: FieldOption[];
   noteEnabled?: boolean;
+  optionPricing?: Record<string, number>; // key = option value, value = ₹ price delta
 }
 
 export interface SpecCategoryGroup {

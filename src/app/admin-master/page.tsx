@@ -5,8 +5,6 @@ import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { BaseModels } from "@/data/specs";
 import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
 import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
-import { ExtrasPriceTable } from "@/components/admin/ExtrasPriceTable";
-import { StructurePriceManager } from "@/components/admin/StructurePriceManager";
 import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
 import { Settings2, Bus } from "lucide-react";
 
@@ -70,18 +68,10 @@ export default function AdminMasterPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Pricing & Extras */}
         <div className="lg:col-span-4 space-y-8">
-          <ModelPriceEditor 
-            model={selectedModel} 
-            basePrice={activeProfile.basePrice} 
-          />
-          
-          <ExtrasPriceTable
+          <ModelPriceEditor
             model={selectedModel}
-            extras={activeProfile.extrasPricing}
+            basePrice={activeProfile.basePrice}
           />
-          {selectedModel === "Kerala Series" && (
-            <StructurePriceManager model={selectedModel} />
-          )}
         </div>
 
         {/* Right Column: Spec Manager + Seating Rows */}

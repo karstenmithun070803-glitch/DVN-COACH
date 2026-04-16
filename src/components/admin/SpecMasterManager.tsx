@@ -38,23 +38,34 @@ interface SpecMasterManagerProps {
 
 // ─── Level 1: Sortable Option Chip ────────────────────────────────────────────
 
+const fmtPrice = (p: number) =>
+  p >= 100000 ? `${(p / 100000).toFixed(p % 100000 === 0 ? 0 : 1)}L`
+  : p >= 1000  ? `${(p / 1000).toFixed(p % 1000 === 0 ? 0 : 1)}k`
+  : `${p}`;
+
 interface SortableOptionChipProps {
   option: string;
   isDefault: boolean;
+  optionPrice?: number;
   onToggleStar: () => void;
   onRemove: () => void;
   onRename: (oldOpt: string, newOpt: string) => void;
+  onUpdatePrice: (price: number) => void;
 }
 
 function SortableOptionChip({
   option,
   isDefault,
+  optionPrice,
   onToggleStar,
   onRemove,
   onRename,
+  onUpdatePrice,
 }: SortableOptionChipProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(option);
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -124,6 +135,41 @@ function SortableOptionChip({
         </span>
       )}
 
+      {/* Inline price badge / editor */}
+      <div onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+        {editingPrice ? (
+          <input
+            autoFocus
+            type="number"
+            value={priceInput}
+            onChange={e => setPriceInput(e.target.value)}
+            onBlur={() => { onUpdatePrice(Number(priceInput) || 0); setEditingPrice(false); }}
+            onKeyDown={e => {
+              if (e.key === "Enter") { onUpdatePrice(Number(priceInput) || 0); setEditingPrice(false); }
+              if (e.key === "Escape") setEditingPrice(false);
+              e.stopPropagation();
+            }}
+            className="w-20 text-xs border border-slate-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400 text-slate-700 bg-white"
+            placeholder="₹ price"
+          />
+        ) : (
+          <button
+            onClick={() => { setPriceInput(String(optionPrice ?? "")); setEditingPrice(true); }}
+            className={cn(
+              "text-xs px-1.5 py-0.5 rounded transition-colors",
+              optionPrice && optionPrice > 0
+                ? "bg-teal-50 text-teal-700 font-medium border border-teal-200"
+                : isDefault
+                  ? "text-white/50 hover:text-white hover:bg-white/10"
+                  : "text-slate-300 hover:text-slate-500 hover:bg-slate-100"
+            )}
+            title="Set price for this option"
+          >
+            {optionPrice && optionPrice > 0 ? `+₹${fmtPrice(optionPrice)}` : "+₹"}
+          </button>
+        )}
+      </div>
+
       <div
         className="flex items-center border-l border-slate-100 pl-3 ml-1 group-hover:border-teal-400 transition-colors"
         onPointerDown={e => e.stopPropagation()}
@@ -176,6 +222,7 @@ function SortableFieldRow({
 }: SortableFieldRowProps) {
   const {
     addOption,
+    updateOptionPrice,
     removeOption,
     setStandardSelection,
     reorderOptions,
@@ -189,6 +236,7 @@ function SortableFieldRow({
   const [editNameValue, setEditNameValue] = useState(field.name);
   const [addingOption, setAddingOption] = useState(false);
   const [newOptionValue, setNewOptionValue] = useState("");
+  const [newOptionPrice, setNewOptionPrice] = useState<number | "">("");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -208,8 +256,9 @@ function SortableFieldRow({
 
   const handleAddOption = () => {
     if (newOptionValue.trim()) {
-      addOption(model, groupName, field.id, newOptionValue.trim());
+      addOption(model, groupName, field.id, newOptionValue.trim(), Number(newOptionPrice) || 0);
       setNewOptionValue("");
+      setNewOptionPrice("");
       setAddingOption(false);
     }
   };
@@ -302,7 +351,16 @@ function SortableFieldRow({
             onChange={e => setNewOptionValue(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleAddOption()}
             className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-            placeholder="Type new option name..."
+            placeholder="Option name..."
+          />
+          <input
+            type="number"
+            value={newOptionPrice}
+            onChange={e => setNewOptionPrice(e.target.value === "" ? "" : Number(e.target.value))}
+            onKeyDown={e => e.key === "Enter" && handleAddOption()}
+            className="w-28 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+            placeholder="₹ price"
+            min={0}
           />
           <button
             onClick={handleAddOption}
@@ -322,12 +380,14 @@ function SortableFieldRow({
                 key={opt}
                 option={opt}
                 isDefault={standardSelections[field.name] === opt}
+                optionPrice={field.optionPricing?.[opt]}
                 onToggleStar={() => {
                   const isActive = standardSelections[field.name] === opt;
                   setStandardSelection(model, field.name, isActive ? "" : opt);
                 }}
                 onRemove={() => removeOption(model, groupName, field.id, opt)}
                 onRename={(oldOpt, newOpt) => renameOption(model, groupName, field.id, oldOpt, newOpt)}
+                onUpdatePrice={(price) => updateOptionPrice(model, groupName, field.id, opt, price)}
               />
             ))}
             {field.options.length === 0 && (
