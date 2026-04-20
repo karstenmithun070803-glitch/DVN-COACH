@@ -480,7 +480,7 @@ function NewJobPage() {
               transform: "translate(-50%, -50%) rotate(-45deg)",
               width: "160mm",
               height: "160mm",
-              opacity: 0.04,
+              opacity: 0.08,
               zIndex: 0,
               pointerEvents: "none",
             }}>
@@ -617,7 +617,7 @@ function NewJobPage() {
                 <div className="pt-4 border-t border-slate-300">
                   <p className="text-sm">
                     <span className="font-bold underline">Extras:</span>
-                    &nbsp; 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers
+                    &nbsp; 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers&nbsp;&nbsp; 5. Driver seat
                   </p>
                   <div className="text-sm mt-2">
                     <p className="font-bold underline italic">Note:</p>
