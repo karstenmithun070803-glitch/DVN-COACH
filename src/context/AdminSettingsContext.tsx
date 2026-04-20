@@ -61,23 +61,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function load() {
-      // ─── Try Supabase first ──────────────────────────────────────────────────
-      if (isSupabaseConfigured) {
-        const { data, error } = await supabase
-          .from("admin_settings")
-          .select("profiles")
-          .eq("id", "singleton")
-          .single();
-        if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
-          const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
-          setProfiles(loaded);
-          setIsLoaded(true);
-          return;
-        }
-      }
-
-      // ─── Fallback: localStorage + migrations ────────────────────────────────
+      // ─── localStorage first (same-device persistence, never lost on close) ──
+      // Supabase is only used when localStorage is empty (fresh device / new install).
+      // This prevents Supabase's stale data from overwriting unsaved local changes.
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       let currentProfiles: Record<BaseModels, BusModelProfile>;
 
@@ -259,9 +245,37 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         });
       }
 
+      setProfiles(currentProfiles);
+      setIsLoaded(true);
+      // Non-blocking: push latest local state to Supabase for cross-device visibility
+      if (isSupabaseConfigured) {
+        supabase.from("admin_settings").upsert({
+          id: "singleton",
+          profiles: currentProfiles,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      return; // localStorage is authoritative on this device — done
+
     } else {
+      // ─── No localStorage: try Supabase (new device / fresh install) ─────────
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from("admin_settings")
+          .select("profiles")
+          .eq("id", "singleton")
+          .single();
+        if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
+          const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
+          setProfiles(loaded);
+          setIsLoaded(true);
+          return;
+        }
+      }
+
       // ─── Fresh Install ─────────────────────────────────────────────────────
-      // No localStorage found — build full profiles from specs.ts defaults.
+      // No localStorage and no Supabase data — build from specs.ts defaults.
       const initialProfiles: Partial<Record<BaseModels, BusModelProfile>> = {};
       const models: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
 
@@ -283,7 +297,6 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         };
       });
 
-      // Kerala Series — identical to Moffusil except custom wheel-base options and structurePricing
       const keralaSpecGroups = structuredClone(SPEC_CONFIGURATOR);
       const keralaStructure = keralaSpecGroups.find((g: SpecCategoryGroup) => g.groupName === "STRUCTURE");
       if (keralaStructure) {
@@ -314,19 +327,17 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       currentProfiles = initialProfiles as Record<BaseModels, BusModelProfile>;
       localStorage.setItem(RENAME_MIGRATION_KEY, "true");
       localStorage.setItem(FULL_SYNC_KEY, "true");
-    }
 
       setProfiles(currentProfiles);
       setIsLoaded(true);
-
-      // First-time upload to Supabase from localStorage
       if (isSupabaseConfigured) {
-        await supabase.from("admin_settings").upsert({
+        supabase.from("admin_settings").upsert({
           id: "singleton",
           profiles: currentProfiles,
           updated_at: new Date().toISOString(),
         });
       }
+    }
     }
     load();
   }, []);
