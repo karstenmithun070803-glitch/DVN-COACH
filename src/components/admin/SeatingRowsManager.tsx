@@ -40,11 +40,11 @@ export function SeatingRowsManager({ model, isOpen, onToggle }: Props) {
           <GripVertical className="w-5 h-5" />
         </span>
 
-        {/* Accordion toggle — <button> mirrors SortableGroupCard */}
+        {/* Accordion toggle — uses onPointerDown to bypass dnd-kit's document click capture handler */}
         <button
           type="button"
-          onClick={onToggle}
-          className="flex-1 flex items-center justify-between py-6 pr-8 hover:bg-slate-50/50 transition-all"
+          onPointerDown={e => { e.stopPropagation(); onToggle(); }}
+          className="flex-1 flex items-center justify-between py-6 pr-8 hover:bg-slate-50/50 transition-all cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <span className="text-sm font-black text-slate-800 uppercase tracking-widest">
