@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   SPEC_CONFIGURATOR,
@@ -61,9 +61,25 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function load() {
-      // ─── localStorage first (same-device persistence, never lost on close) ──
-      // Supabase is only used when localStorage is empty (fresh device / new install).
-      // This prevents Supabase's stale data from overwriting unsaved local changes.
+      // ─── Supabase first (cross-device source of truth) ───────────────────────
+      // If Supabase has data, use it on every open so all devices stay in sync.
+      // localStorage is used only as a fallback when Supabase is unreachable.
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from("admin_settings")
+          .select("profiles")
+          .eq("id", "singleton")
+          .single();
+        if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
+          const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
+          setProfiles(loaded);
+          setIsLoaded(true);
+          return;
+        }
+      }
+
+      // ─── Fallback: localStorage + migrations ─────────────────────────────────
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       let currentProfiles: Record<BaseModels, BusModelProfile>;
 
@@ -245,37 +261,9 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         });
       }
 
-      setProfiles(currentProfiles);
-      setIsLoaded(true);
-      // Non-blocking: push latest local state to Supabase for cross-device visibility
-      if (isSupabaseConfigured) {
-        supabase.from("admin_settings").upsert({
-          id: "singleton",
-          profiles: currentProfiles,
-          updated_at: new Date().toISOString(),
-        });
-      }
-      return; // localStorage is authoritative on this device — done
-
     } else {
-      // ─── No localStorage: try Supabase (new device / fresh install) ─────────
-      if (isSupabaseConfigured) {
-        const { data, error } = await supabase
-          .from("admin_settings")
-          .select("profiles")
-          .eq("id", "singleton")
-          .single();
-        if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
-          const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
-          setProfiles(loaded);
-          setIsLoaded(true);
-          return;
-        }
-      }
-
       // ─── Fresh Install ─────────────────────────────────────────────────────
-      // No localStorage and no Supabase data — build from specs.ts defaults.
+      // No Supabase data and no localStorage — build from specs.ts defaults.
       const initialProfiles: Partial<Record<BaseModels, BusModelProfile>> = {};
       const models: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
 
@@ -327,36 +315,33 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       currentProfiles = initialProfiles as Record<BaseModels, BusModelProfile>;
       localStorage.setItem(RENAME_MIGRATION_KEY, "true");
       localStorage.setItem(FULL_SYNC_KEY, "true");
+    }
 
-      setProfiles(currentProfiles);
-      setIsLoaded(true);
-      if (isSupabaseConfigured) {
-        supabase.from("admin_settings").upsert({
-          id: "singleton",
-          profiles: currentProfiles,
-          updated_at: new Date().toISOString(),
-        });
-      }
+    // Both the localStorage and fresh-install paths converge here
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentProfiles));
+    setProfiles(currentProfiles);
+    setIsLoaded(true);
+    // Upload to Supabase so other devices pick up the latest state
+    if (isSupabaseConfigured) {
+      supabase.from("admin_settings").upsert({
+        id: "singleton",
+        profiles: currentProfiles,
+        updated_at: new Date().toISOString(),
+      });
     }
     }
     load();
   }, []);
 
-  const supabaseSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
-      if (isSupabaseConfigured) {
-        if (supabaseSyncRef.current) clearTimeout(supabaseSyncRef.current);
-        supabaseSyncRef.current = setTimeout(() => {
-          supabase.from("admin_settings").upsert({
-            id: "singleton",
-            profiles,
-            updated_at: new Date().toISOString(),
-          });
-        }, 1000);
-      }
+    if (!isLoaded) return;
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
+    if (isSupabaseConfigured) {
+      supabase.from("admin_settings").upsert({
+        id: "singleton",
+        profiles,
+        updated_at: new Date().toISOString(),
+      });
     }
   }, [profiles, isLoaded]);
 
