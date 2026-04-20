@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   SPEC_CONFIGURATOR,
@@ -58,6 +58,7 @@ const FULL_SYNC_KEY = "dvn-v5-full-moffusil-baseline"; // One-time copy of Moffu
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as Record<BaseModels, BusModelProfile>);
   const [isLoaded, setIsLoaded] = useState(false);
+  const skipNextSave = useRef(false);
 
   useEffect(() => {
     async function load() {
@@ -73,6 +74,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
           const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
+          skipNextSave.current = true;
           setProfiles(loaded);
           setIsLoaded(true);
           return;
@@ -323,25 +325,27 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     setIsLoaded(true);
     // Upload to Supabase so other devices pick up the latest state
     if (isSupabaseConfigured) {
-      supabase.from("admin_settings").upsert({
-        id: "singleton",
-        profiles: currentProfiles,
-        updated_at: new Date().toISOString(),
-      });
+      supabase.from("admin_settings")
+        .upsert({ id: "singleton", profiles: currentProfiles, updated_at: new Date().toISOString() })
+        .then(({ error }) => {
+          if (error) console.error("[AdminSettings] Initial upload failed:", error.message);
+        });
     }
     }
     load();
+
   }, []);
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (skipNextSave.current) { skipNextSave.current = false; return; }
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
     if (isSupabaseConfigured) {
-      supabase.from("admin_settings").upsert({
-        id: "singleton",
-        profiles,
-        updated_at: new Date().toISOString(),
-      });
+      supabase.from("admin_settings")
+        .upsert({ id: "singleton", profiles, updated_at: new Date().toISOString() })
+        .then(({ error }) => {
+          if (error) console.error("[AdminSettings] Supabase write failed:", error.message);
+        });
     }
   }, [profiles, isLoaded]);
 
