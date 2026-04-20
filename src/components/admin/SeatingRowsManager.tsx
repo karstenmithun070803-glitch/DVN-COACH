@@ -8,13 +8,14 @@ import { useAdminSettings } from "@/context/AdminSettingsContext";
 
 interface Props {
   model: BaseModels;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-export function SeatingRowsManager({ model }: Props) {
+export function SeatingRowsManager({ model, isOpen, onToggle }: Props) {
   const { profiles, addSeatingRow, updateSeatingRow, removeSeatingRow } = useAdminSettings();
   const rows = profiles[model]?.seatingRows ?? DEFAULT_SEATING_ROWS;
 
-  const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [newRow, setNewRow] = useState({ location: "", type: "", multiplier: 1 });
 
@@ -42,7 +43,7 @@ export function SeatingRowsManager({ model }: Props) {
         {/* Accordion toggle — <button> mirrors SortableGroupCard */}
         <button
           type="button"
-          onClick={() => setIsOpen(v => !v)}
+          onClick={onToggle}
           className="flex-1 flex items-center justify-between py-6 pr-8 hover:bg-slate-50/50 transition-all"
         >
           <div className="flex items-center gap-3">

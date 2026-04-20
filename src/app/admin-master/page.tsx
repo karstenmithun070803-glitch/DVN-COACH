@@ -13,6 +13,7 @@ const ADMIN_DRAFT_KEY = "dvn-admin-master-draft";
 
 export default function AdminMasterPage() {
   const { profiles, isLoaded } = useAdminSettings();
+  const [seatingOpen, setSeatingOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<BaseModels>(() => {
     if (typeof window === "undefined") return "Moffusil";
     try {
@@ -81,7 +82,7 @@ export default function AdminMasterPage() {
             specGroups={activeProfile.specGroups}
             standardSelections={activeProfile.standardSelections}
           />
-          <SeatingRowsManager key={selectedModel} model={selectedModel} />
+          <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} />
         </div>
       </div>
     </div>
