@@ -81,7 +81,7 @@ export default function AdminMasterPage() {
             specGroups={activeProfile.specGroups}
             standardSelections={activeProfile.standardSelections}
           />
-          <SeatingRowsManager model={selectedModel} />
+          <SeatingRowsManager key={selectedModel} model={selectedModel} />
         </div>
       </div>
     </div>
