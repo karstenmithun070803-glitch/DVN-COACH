@@ -32,17 +32,19 @@ export function SeatingRowsManager({ model }: Props) {
       )}
     >
       {/* Header — mirrors SortableGroupCard exactly */}
-      <div
-        onClick={() => setIsOpen(v => !v)}
-        className={cn("flex items-center transition-all cursor-pointer hover:bg-slate-50/50", isOpen && "bg-slate-50/80 border-b border-slate-100")}
-      >
-        {/* Drag grip (visual, matches SpecMasterManager style) */}
+      <div className={cn("flex items-center transition-all", isOpen && "bg-slate-50/80 border-b border-slate-100")}>
+
+        {/* Drag grip (visual only) */}
         <span className="pl-5 pr-3 py-6 text-slate-300 flex-shrink-0">
           <GripVertical className="w-5 h-5" />
         </span>
 
-        {/* Label + chevron */}
-        <div className="flex-1 flex items-center justify-between py-6 pr-8">
+        {/* Accordion toggle — <button> mirrors SortableGroupCard */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(v => !v)}
+          className="flex-1 flex items-center justify-between py-6 pr-8 hover:bg-slate-50/50 transition-all"
+        >
           <div className="flex items-center gap-3">
             <span className="text-sm font-black text-slate-800 uppercase tracking-widest">
               Seating Capacity
@@ -56,12 +58,13 @@ export function SeatingRowsManager({ model }: Props) {
           ) : (
             <ChevronDown className="w-5 h-5 text-slate-400" />
           )}
-        </div>
+        </button>
 
         {/* + button, only when open */}
         {isOpen && (
           <button
-            onClick={e => { e.stopPropagation(); setIsAdding(v => !v); }}
+            type="button"
+            onClick={() => setIsAdding(v => !v)}
             className="pr-5 pl-2 py-6 text-teal-600 hover:text-teal-700 transition-colors flex-shrink-0"
             title={isAdding ? "Cancel" : "Add Row"}
           >
