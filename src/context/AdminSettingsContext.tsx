@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   SPEC_CONFIGURATOR,
   BUS_MODELS_BASE,
@@ -59,8 +60,26 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    let currentProfiles: Record<BaseModels, BusModelProfile>;
+    async function load() {
+      // ─── Try Supabase first ──────────────────────────────────────────────────
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from("admin_settings")
+          .select("profiles")
+          .eq("id", "singleton")
+          .single();
+        if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
+          const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
+          setProfiles(loaded);
+          setIsLoaded(true);
+          return;
+        }
+      }
+
+      // ─── Fallback: localStorage + migrations ────────────────────────────────
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let currentProfiles: Record<BaseModels, BusModelProfile>;
 
     if (saved) {
       currentProfiles = JSON.parse(saved);
@@ -297,14 +316,36 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       localStorage.setItem(FULL_SYNC_KEY, "true");
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setProfiles(currentProfiles);
-    setIsLoaded(true);
+      setProfiles(currentProfiles);
+      setIsLoaded(true);
+
+      // First-time upload to Supabase from localStorage
+      if (isSupabaseConfigured) {
+        await supabase.from("admin_settings").upsert({
+          id: "singleton",
+          profiles: currentProfiles,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+    load();
   }, []);
+
+  const supabaseSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
+      if (isSupabaseConfigured) {
+        if (supabaseSyncRef.current) clearTimeout(supabaseSyncRef.current);
+        supabaseSyncRef.current = setTimeout(() => {
+          supabase.from("admin_settings").upsert({
+            id: "singleton",
+            profiles,
+            updated_at: new Date().toISOString(),
+          });
+        }, 1000);
+      }
     }
   }, [profiles, isLoaded]);
 
