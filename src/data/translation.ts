@@ -112,7 +112,7 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "Hatrack Light": "ஹாட்ராக் லைட்",
   "Emergency Buzzer": "எமர்ஜென்சி பஸர்",
   "Electric Calling Buzzer": "எலக்ட்ரிக் காலிங் பஸர்",
-  "EXTRAS & PAINT (PRICED)": "எக்ஸ்ட்ராஸ் & பெயிண்ட்",
+  "EXTRA PRICE": "கூடுதல் விலை",
   "Art Work": "ஆர்ட் ஒர்க்",
   "Audio & Video": "ஆடியோ & வீடியோ",
   "Decorative Lights": "டெக்கரேட்டிவ் லைட்ஸ்",

@@ -263,6 +263,20 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         });
       }
 
+      // ─── Extra Price Group Rename (v9) ───────────────────────────────────
+      const EXTRA_PRICE_RENAME_KEY = "dvn-v9-extra-price-rename";
+      if (!localStorage.getItem(EXTRA_PRICE_RENAME_KEY)) {
+        const allModelKeys = Object.keys(currentProfiles) as BaseModels[];
+        allModelKeys.forEach(model => {
+          if (currentProfiles[model]?.specGroups) {
+            currentProfiles[model].specGroups = currentProfiles[model].specGroups.map((g: SpecCategoryGroup) =>
+              g.groupName === "EXTRAS & PAINT (PRICED)" ? { ...g, groupName: "EXTRA PRICE" } : g
+            );
+          }
+        });
+        localStorage.setItem(EXTRA_PRICE_RENAME_KEY, "true");
+      }
+
     } else {
       // ─── Fresh Install ─────────────────────────────────────────────────────
       // No Supabase data and no localStorage — build from specs.ts defaults.

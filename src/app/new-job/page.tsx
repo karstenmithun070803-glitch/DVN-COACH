@@ -589,8 +589,18 @@ function NewJobPage() {
                         {groupFields.length > 0 && (
                           <>
                             <tr className="break-after-avoid">
-                              <td colSpan={3} className="pt-4 pb-0.5 border-b border-slate-300">
-                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                              <td colSpan={3} className={cn(
+                                "pb-0.5 border-b",
+                                group.groupName === "EXTRA PRICE"
+                                  ? "pt-6 border-slate-800"
+                                  : "pt-4 border-slate-300"
+                              )}>
+                                <span className={cn(
+                                  "uppercase tracking-widest",
+                                  group.groupName === "EXTRA PRICE"
+                                    ? "text-[15px] font-extrabold text-slate-900"
+                                    : "text-[11px] font-bold text-slate-500"
+                                )}>
                                   {t(group.groupName, isTamil)}
                                 </span>
                               </td>

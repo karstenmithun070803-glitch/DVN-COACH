@@ -189,7 +189,7 @@ export const SPEC_CONFIGURATOR: SpecCategoryGroup[] = [
     ]
   },
   {
-    groupName: "EXTRAS & PAINT (PRICED)",
+    groupName: "EXTRA PRICE",
     fields: [
       { id: "art-work", name: "Art Work", options: ["Yes", "No"] },
       { id: "audio-video", name: "Audio & Video", options: ["Yes", "No"] },
