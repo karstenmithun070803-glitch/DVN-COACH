@@ -832,167 +832,163 @@ function NewJobPage() {
             </div>
 
             <div className="flex flex-col gap-4">
-              {SPEC_CONFIGURATOR.map((section) => (
-                <div
-                  key={section.groupName}
-                  id={`section-${section.groupName}`}
-                  className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
-                >
-                  <div
-                    className={cn(
-                      "p-6 flex justify-between items-center cursor-pointer transition-all",
-                      activeSection === section.groupName ? "bg-slate-50/50" : "hover:bg-slate-50/80"
-                    )}
-                    onClick={() => handleSectionToggle(section.groupName)}
-                  >
-                    <h3 className={cn(
-                      "text-base font-semibold",
-                      activeSection === section.groupName ? "text-[#333333]" : "text-[#475569]",
-                      isTamil && "font-bold text-[17px] tracking-wide"
-                    )}>
-                      {t(section.groupName, isTamil)}
-                    </h3>
-                    {activeSection === section.groupName
-                      ? <ChevronUp className="w-5 h-5 text-slate-400" />
-                      : <ChevronDown className="w-5 h-5 text-slate-400" />
-                    }
-                  </div>
-
-                  {activeSection === section.groupName && (
-                    <div className="p-6 pt-0 border-t border-slate-100 flex flex-col gap-8 bg-white mt-4">
-                      {section.fields.map((field) => (
-                        <div key={field.id}>
-                          <p className={cn(
-                            "text-sm font-semibold text-[#64748B] mb-3",
-                            isTamil && "font-bold text-[15px]"
-                          )}>
-                            {t(field.name, isTamil)}
-                          </p>
-                          <div className="flex flex-wrap gap-3">
-                            {field.options.map(opt => {
-                              const isSelected = (selections[field.name] ?? []).includes(opt);
-                              const optionPrice = field.optionPricing?.[opt];
-                              return (
-                                <div
-                                  key={opt}
-                                  onClick={() => handleSelect(field.name, opt)}
-                                  className={cn(
-                                    "px-5 py-2.5 rounded-lg cursor-pointer flex items-center justify-between transition-all border",
-                                    isSelected
-                                      ? "border-teal-500 bg-teal-50"
-                                      : "border-slate-200 bg-white hover:border-teal-300"
-                                  )}
-                                >
-                                  <span className={cn(
-                                    "text-sm font-medium",
-                                    isSelected ? "text-teal-800" : "text-[#333333]",
-                                    isTamil && "font-bold text-[15.5px]"
-                                  )}>
-                                    {t(opt, isTamil)}
-                                  </span>
-                                  {optionPrice && optionPrice !== 0 && (
-                                    <span className={cn(
-                                      "text-xs font-medium ml-3",
-                                      isSelected
-                                        ? optionPrice > 0 ? "text-teal-600" : "text-orange-500"
-                                        : "text-slate-400"
-                                    )}>
-                                      {optionPrice > 0 ? "+" : "-"}₹{fmtPrice(optionPrice)}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {field.noteEnabled && (
-                            <textarea
-                              value={fieldNotes[field.id] ?? ""}
-                              onChange={e => setFieldNotes(prev => ({ ...prev, [field.id]: e.target.value }))}
-                              placeholder={`Note for ${field.name}...`}
-                              rows={2}
-                              className="mt-3 w-full px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-slate-700 placeholder-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all resize-none"
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* ─── SEATING CAPACITY ─────────────────────────────────────────── */}
-            {(() => {
-              const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
-              const total = seatingRows.reduce((sum, r) => sum + (seating[r.id] || 0) * r.multiplier, 0);
-              const isOpen = activeSection === "SEATING CAPACITY";
-              return (
-                <div
-                  id="section-SEATING CAPACITY"
-                  className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
-                >
-                  <div
-                    className={cn("p-6 flex justify-between items-center cursor-pointer transition-all", isOpen ? "bg-slate-50/50" : "hover:bg-slate-50/80")}
-                    onClick={() => handleSectionToggle("SEATING CAPACITY")}
-                  >
-                    <h3 className="text-base font-semibold text-[#475569]">
-                      {t("SEATING CAPACITY", isTamil)}
-                      {total > 0 && <span className="ml-3 text-teal-600 font-bold">{total} Seats</span>}
-                    </h3>
-                    {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-                  </div>
-                  {isOpen && (
-                    <div className="p-6 pt-0 border-t border-slate-100 bg-white mt-4">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-[14px]">
-                          <thead>
-                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                              <th className="text-left pb-4 min-w-[100px]">Location</th>
-                              <th className="text-left pb-4 min-w-[80px]">Type</th>
-                              <th className="text-center pb-4 w-10">×</th>
-                              <th className="text-center pb-4 min-w-[100px]">Rows (Qty)</th>
-                              <th className="text-center pb-4 w-10">=</th>
-                              <th className="text-right pb-4 min-w-[60px]">Seats</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {seatingRows.map((row) => {
-                              const qty = seating[row.id] || 0;
-                              const result = qty * row.multiplier;
-                              return (
-                                <tr key={row.id} className="border-b border-slate-50">
-                                  <td className="py-4 text-slate-500 font-medium">{t(row.location, isTamil)}</td>
-                                  <td className="py-4 text-slate-700 font-semibold">{t(row.type, isTamil)}</td>
-                                  <td className="py-4 text-center text-slate-400">×</td>
-                                  <td className="py-4 text-center">
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      value={qty === 0 ? "" : qty}
-                                      onChange={e => setSeating(prev => ({ ...prev, [row.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                                      placeholder="0"
-                                      className="w-24 min-h-[44px] text-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                                    />
-                                  </td>
-                                  <td className="py-4 text-center text-slate-400">=</td>
-                                  <td className="py-4 text-right font-bold text-slate-800">{result > 0 ? result : "—"}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                          <tfoot>
-                            <tr className="border-t-2 border-slate-200">
-                              <td colSpan={5} className="pt-4 text-sm font-bold text-slate-700 uppercase tracking-wide">Total</td>
-                              <td className="pt-4 text-right text-xl font-extrabold text-teal-600">{total > 0 ? total : "—"}</td>
-                            </tr>
-                          </tfoot>
-                        </table>
+              {SPEC_CONFIGURATOR.map((section) => {
+                const isSeatingSlot = section.groupName === "FITTINGS";
+                return (
+                  <Fragment key={section.groupName}>
+                    <div
+                      id={`section-${section.groupName}`}
+                      className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
+                    >
+                      <div
+                        className={cn(
+                          "p-6 flex justify-between items-center cursor-pointer transition-all",
+                          activeSection === section.groupName ? "bg-slate-50/50" : "hover:bg-slate-50/80"
+                        )}
+                        onClick={() => handleSectionToggle(section.groupName)}
+                      >
+                        <h3 className={cn(
+                          "text-base font-semibold",
+                          activeSection === section.groupName ? "text-[#333333]" : "text-[#475569]",
+                          isTamil && "font-bold text-[17px] tracking-wide"
+                        )}>
+                          {t(section.groupName, isTamil)}
+                        </h3>
+                        {activeSection === section.groupName
+                          ? <ChevronUp className="w-5 h-5 text-slate-400" />
+                          : <ChevronDown className="w-5 h-5 text-slate-400" />
+                        }
                       </div>
+                      {activeSection === section.groupName && (
+                        <div className="p-6 pt-0 border-t border-slate-100 flex flex-col gap-8 bg-white mt-4">
+                          {section.fields.map((field) => (
+                            <div key={field.id}>
+                              <p className={cn(
+                                "text-sm font-semibold text-[#64748B] mb-3",
+                                isTamil && "font-bold text-[15px]"
+                              )}>
+                                {t(field.name, isTamil)}
+                              </p>
+                              <div className="flex flex-wrap gap-3">
+                                {field.options.map(opt => {
+                                  const isSelected = (selections[field.name] ?? []).includes(opt);
+                                  const optionPrice = field.optionPricing?.[opt];
+                                  return (
+                                    <div
+                                      key={opt}
+                                      onClick={() => handleSelect(field.name, opt)}
+                                      className={cn(
+                                        "px-5 py-2.5 rounded-lg cursor-pointer flex items-center justify-between transition-all border",
+                                        isSelected
+                                          ? "border-teal-500 bg-teal-50"
+                                          : "border-slate-200 bg-white hover:border-teal-300"
+                                      )}
+                                    >
+                                      <span className={cn(
+                                        "text-sm font-medium",
+                                        isSelected ? "text-teal-800" : "text-[#333333]",
+                                        isTamil && "font-bold text-[15.5px]"
+                                      )}>
+                                        {t(opt, isTamil)}
+                                      </span>
+                                      {optionPrice && optionPrice !== 0 && (
+                                        <span className={cn(
+                                          "text-xs font-medium ml-3",
+                                          isSelected
+                                            ? optionPrice > 0 ? "text-teal-600" : "text-orange-500"
+                                            : "text-slate-400"
+                                        )}>
+                                          {optionPrice > 0 ? "+" : "-"}₹{fmtPrice(optionPrice)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {field.noteEnabled && (
+                                <textarea
+                                  value={fieldNotes[field.id] ?? ""}
+                                  onChange={e => setFieldNotes(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  placeholder={`Note for ${field.name}...`}
+                                  rows={2}
+                                  className="mt-3 w-full px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-slate-700 placeholder-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all resize-none"
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })()}
+                    {isSeatingSlot && (
+                      <div
+                        id="section-SEATING CAPACITY"
+                        className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
+                      >
+                        <div
+                          className={cn("p-6 flex justify-between items-center cursor-pointer transition-all", activeSection === "SEATING CAPACITY" ? "bg-slate-50/50" : "hover:bg-slate-50/80")}
+                          onClick={() => handleSectionToggle("SEATING CAPACITY")}
+                        >
+                          <h3 className="text-base font-semibold text-[#475569]">
+                            {t("SEATING CAPACITY", isTamil)}
+                            {seatingTotal > 0 && <span className="ml-3 text-teal-600 font-bold">{seatingTotal} Seats</span>}
+                          </h3>
+                          {activeSection === "SEATING CAPACITY" ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                        </div>
+                        {activeSection === "SEATING CAPACITY" && (
+                          <div className="p-6 pt-0 border-t border-slate-100 bg-white mt-4">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-[14px]">
+                                <thead>
+                                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                    <th className="text-left pb-4 min-w-[100px]">Location</th>
+                                    <th className="text-left pb-4 min-w-[80px]">Type</th>
+                                    <th className="text-center pb-4 w-10">×</th>
+                                    <th className="text-center pb-4 min-w-[100px]">Rows (Qty)</th>
+                                    <th className="text-center pb-4 w-10">=</th>
+                                    <th className="text-right pb-4 min-w-[60px]">Seats</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS).map((row) => {
+                                    const qty = seating[row.id] || 0;
+                                    const result = qty * row.multiplier;
+                                    return (
+                                      <tr key={row.id} className="border-b border-slate-50">
+                                        <td className="py-4 text-slate-500 font-medium">{t(row.location, isTamil)}</td>
+                                        <td className="py-4 text-slate-700 font-semibold">{t(row.type, isTamil)}</td>
+                                        <td className="py-4 text-center text-slate-400">×</td>
+                                        <td className="py-4 text-center">
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            value={qty === 0 ? "" : qty}
+                                            onChange={e => setSeating(prev => ({ ...prev, [row.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                            placeholder="0"
+                                            className="w-24 min-h-[44px] text-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                                          />
+                                        </td>
+                                        <td className="py-4 text-center text-slate-400">=</td>
+                                        <td className="py-4 text-right font-bold text-slate-800">{result > 0 ? result : "—"}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="border-t-2 border-slate-200">
+                                    <td colSpan={5} className="pt-4 text-sm font-bold text-slate-700 uppercase tracking-wide">Total</td>
+                                    <td className="pt-4 text-right text-xl font-extrabold text-teal-600">{seatingTotal > 0 ? seatingTotal : "—"}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
           </div>
 
         </div>
