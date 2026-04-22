@@ -73,8 +73,23 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
           .single();
         if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
           const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
+          // Run group-rename migration on Supabase data
+          const EXTRA_PRICE_RENAME_KEY = "dvn-v9-extra-price-rename";
+          let migrationRan = false;
+          if (!localStorage.getItem(EXTRA_PRICE_RENAME_KEY)) {
+            (Object.keys(loaded) as BaseModels[]).forEach(model => {
+              if (loaded[model]?.specGroups) {
+                loaded[model].specGroups = loaded[model].specGroups.map((g: SpecCategoryGroup) =>
+                  g.groupName === "EXTRAS & PAINT (PRICED)" ? { ...g, groupName: "EXTRA PRICE" } : g
+                );
+              }
+            });
+            localStorage.setItem(EXTRA_PRICE_RENAME_KEY, "true");
+            migrationRan = true;
+          }
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
-          skipNextSave.current = true;
+          // Only skip the save effect if no migration ran — migrations must write back to Supabase
+          if (!migrationRan) skipNextSave.current = true;
           setProfiles(loaded);
           setIsLoaded(true);
           return;
