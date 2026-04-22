@@ -633,6 +633,8 @@ function NewJobPage() {
                       <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
                       <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
                       <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> In case of any disagreement, they are subjected to karur jurisdictions</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> <span className="font-bold">NO Changes will be made after final selection</span></li>
                     </ul>
                   </div>
                 </div>
