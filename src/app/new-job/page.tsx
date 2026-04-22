@@ -533,85 +533,92 @@ function NewJobPage() {
                 <tbody>
                   {activeProfile.specGroups.map(group => {
                     const groupFields = group.fields.filter(f => selections[f.name]);
-                    if (groupFields.length === 0) return null;
+                    const isSeatingSlot = group.groupName === "FITTINGS";
+                    const hasSeating = isSeatingSlot && Object.values(seating).some(v => v > 0);
+                    if (groupFields.length === 0 && !hasSeating) return null;
+                    const seatingRows = hasSeating ? (activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS) : [];
+                    const printRows = hasSeating
+                      ? seatingRows
+                          .map(r => ({ location: t(r.location, isTamil), type: t(r.type, isTamil), qty: seating[r.id] ?? 0, mul: r.multiplier }))
+                          .filter(r => r.qty > 0)
+                      : [];
+                    const seatingPrintTotal = printRows.reduce((s, r) => s + r.qty * r.mul, 0);
                     return (
                       <Fragment key={group.groupName}>
-                        <tr className="break-after-avoid">
-                          <td colSpan={3} className="pt-4 pb-0.5 border-b border-slate-300">
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                              {t(group.groupName, isTamil)}
-                            </span>
-                          </td>
-                        </tr>
-                        {groupFields.map(field => {
-                          const note = field.noteEnabled ? fieldNotes[field.id] : undefined;
-                          return (
-                            <tr key={field.id} className="break-inside-avoid">
-                              <td className={cn(
-                                "py-[3px] pr-3 align-top font-semibold uppercase text-slate-700",
-                                isTamil && "font-bold text-[13px]"
-                              )}>
-                                {t(field.name, isTamil)}
-                              </td>
-                              <td className="py-[3px] px-1 align-top text-slate-500 font-normal">:</td>
-                              <td className={cn(
-                                "py-[3px] pl-1 align-top font-bold text-slate-900",
-                                isTamil && "font-extrabold text-[14px]"
-                              )}>
-                                {selections[field.name].map((v: string) => t(v, isTamil)).join(", ")}
-                                {note && <span className="block text-xs text-slate-500 font-normal mt-0.5 whitespace-pre-wrap">{note}</span>}
+                        {groupFields.length > 0 && (
+                          <>
+                            <tr className="break-after-avoid">
+                              <td colSpan={3} className="pt-4 pb-0.5 border-b border-slate-300">
+                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                                  {t(group.groupName, isTamil)}
+                                </span>
                               </td>
                             </tr>
-                          );
-                        })}
+                            {groupFields.map(field => {
+                              const note = field.noteEnabled ? fieldNotes[field.id] : undefined;
+                              return (
+                                <tr key={field.id} className="break-inside-avoid">
+                                  <td className={cn(
+                                    "py-[3px] pr-3 align-top font-semibold uppercase text-slate-700",
+                                    isTamil && "font-bold text-[13px]"
+                                  )}>
+                                    {t(field.name, isTamil)}
+                                  </td>
+                                  <td className="py-[3px] px-1 align-top text-slate-500 font-normal">:</td>
+                                  <td className={cn(
+                                    "py-[3px] pl-1 align-top font-bold text-slate-900",
+                                    isTamil && "font-extrabold text-[14px]"
+                                  )}>
+                                    {selections[field.name].map((v: string) => t(v, isTamil)).join(", ")}
+                                    {note && <span className="block text-xs text-slate-500 font-normal mt-0.5 whitespace-pre-wrap">{note}</span>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </>
+                        )}
+                        {hasSeating && (
+                          <tr className="break-inside-avoid">
+                            <td colSpan={3} className="pt-4">
+                              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-1 break-after-avoid">{t("Seating Capacity", isTamil)}</p>
+                              <table className="w-full text-sm border-collapse">
+                                <thead>
+                                  <tr className="text-xs text-slate-500 uppercase">
+                                    <th className="text-left pb-1 font-semibold">Location</th>
+                                    <th className="text-left pb-1 font-semibold">Type</th>
+                                    <th className="text-center pb-1 font-semibold">×</th>
+                                    <th className="text-center pb-1 font-semibold">Rows</th>
+                                    <th className="text-center pb-1 font-semibold">=</th>
+                                    <th className="text-right pb-1 font-semibold">Seats</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {printRows.map((r, i) => (
+                                    <tr key={i} className="border-t border-slate-100">
+                                      <td className="py-1">{r.location}</td>
+                                      <td className="py-1">{r.type}</td>
+                                      <td className="py-1 text-center text-slate-400">×</td>
+                                      <td className="py-1 text-center font-bold">{r.qty}</td>
+                                      <td className="py-1 text-center text-slate-400">=</td>
+                                      <td className="py-1 text-right font-bold">{r.qty * r.mul}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="border-t border-slate-400">
+                                    <td colSpan={5} className="pt-1 font-bold">Total</td>
+                                    <td className="pt-1 text-right font-extrabold text-lg">{seatingPrintTotal}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </td>
+                          </tr>
+                        )}
                       </Fragment>
                     );
                   })}
                 </tbody>
               </table>
-
-              {Object.values(seating).some(v => v > 0) && (() => {
-                const seatingRows = activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS;
-                const printRows = seatingRows
-                  .map(r => ({ location: t(r.location, isTamil), type: t(r.type, isTamil), qty: seating[r.id] ?? 0, mul: r.multiplier }))
-                  .filter(r => r.qty > 0);
-                const total = printRows.reduce((s, r) => s + r.qty * r.mul, 0);
-                return (
-                  <div className="mt-8 break-inside-avoid">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-300 pb-0.5 mb-1 break-after-avoid">{t("Seating Capacity", isTamil)}</p>
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr className="text-xs text-slate-500 uppercase">
-                          <th className="text-left pb-1 font-semibold">Location</th>
-                          <th className="text-left pb-1 font-semibold">Type</th>
-                          <th className="text-center pb-1 font-semibold">×</th>
-                          <th className="text-center pb-1 font-semibold">Rows</th>
-                          <th className="text-center pb-1 font-semibold">=</th>
-                          <th className="text-right pb-1 font-semibold">Seats</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {printRows.map((r, i) => (
-                          <tr key={i} className="border-t border-slate-100">
-                            <td className="py-1">{r.location}</td>
-                            <td className="py-1">{r.type}</td>
-                            <td className="py-1 text-center text-slate-400">×</td>
-                            <td className="py-1 text-center font-bold">{r.qty}</td>
-                            <td className="py-1 text-center text-slate-400">=</td>
-                            <td className="py-1 text-right font-bold">{r.qty * r.mul}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t border-slate-400">
-                          <td colSpan={5} className="pt-1 font-bold">Total</td>
-                          <td className="pt-1 text-right font-extrabold text-lg">{total}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                );
-              })()}
 
               <div className="break-inside-avoid mt-8">
                 <div className="pt-4 border-t border-slate-300">
