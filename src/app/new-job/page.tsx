@@ -465,7 +465,7 @@ function NewJobPage() {
                 @top-right { content: ""; }
                 @bottom-left { content: ""; border-top: 1px solid #cbd5e1; }
                 @bottom-center { content: ""; border-top: 1px solid #cbd5e1; }
-                @bottom-right { content: counter(page) " | Page"; font-size: 8pt; font-family: sans-serif; color: #9ca3af; border-top: 1px solid #cbd5e1; }
+                @bottom-right { content: none; }
               }
               html, body { background: white !important; }
               * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
