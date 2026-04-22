@@ -53,6 +53,8 @@ function NewJobPage() {
   const [isStandardBuild, setIsStandardBuild] = useState(true);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printMode, setPrintMode] = useState<"plain" | "priced">("plain");
   const [basicInfo, setBasicInfo] = useState(DEFAULT_BASIC_INFO);
   const [seating, setSeating] = useState<Record<string, number>>({});
 
@@ -441,7 +443,7 @@ function NewJobPage() {
                  "Create as a New Job"}
               </button>
               <button
-                onClick={() => window.print()}
+                onClick={() => setShowPrintModal(true)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg shadow-sm font-medium transition-all"
               >
                 <Printer className="w-4 h-4" />
@@ -451,6 +453,38 @@ function NewJobPage() {
           </div>
         </div>
       </div>
+
+      {/* Print choice modal */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold text-slate-800 mb-1">Print Specification Sheet</h2>
+            <p className="text-sm text-slate-500 mb-6">Choose what to include in the printout.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { setPrintMode("plain"); setShowPrintModal(false); setTimeout(() => window.print(), 60); }}
+                className="w-full px-5 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-700 hover:border-teal-400 hover:bg-teal-50 transition-all text-left"
+              >
+                <span className="block font-bold text-slate-800">Without Pricing</span>
+                <span className="text-xs text-slate-500 font-normal">Clean spec sheet — no cost figures shown</span>
+              </button>
+              <button
+                onClick={() => { setPrintMode("priced"); setShowPrintModal(false); setTimeout(() => window.print(), 60); }}
+                className="w-full px-5 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold text-slate-700 hover:border-teal-400 hover:bg-teal-50 transition-all text-left"
+              >
+                <span className="block font-bold text-slate-800">With Pricing</span>
+                <span className="text-xs text-slate-500 font-normal">Full quote — base price, add-ons, and total</span>
+              </button>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="w-full px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-100 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
 
@@ -529,6 +563,13 @@ function NewJobPage() {
                 </div>
               </div>
 
+              {printMode === "priced" && (
+                <div className="mb-4 flex justify-between items-center border border-slate-300 rounded-lg px-4 py-2.5 bg-slate-50">
+                  <span className="font-bold text-slate-800 text-sm">{activeModel}{activeModel.endsWith("Series") ? "" : " Series"}</span>
+                  <span className="text-sm text-slate-600">Base Price: <span className="font-extrabold text-slate-900">₹{activeProfile.basePrice.toLocaleString("en-IN")}</span></span>
+                </div>
+              )}
+
               <table className="w-full border-collapse text-[13px]">
                 <tbody>
                   {activeProfile.specGroups.map(group => {
@@ -569,7 +610,20 @@ function NewJobPage() {
                                     "py-[3px] pl-1 align-top font-bold text-slate-900",
                                     isTamil && "font-extrabold text-[14px]"
                                   )}>
-                                    {selections[field.name].map((v: string) => t(v, isTamil)).join(", ")}
+                                    {selections[field.name].map((v: string, vi: number) => {
+                                      const price = printMode === "priced" ? (field.optionPricing?.[v] ?? 0) : 0;
+                                      return (
+                                        <span key={vi}>
+                                          {vi > 0 && ", "}
+                                          {t(v, isTamil)}
+                                          {price !== 0 && (
+                                            <span className={price > 0 ? "text-teal-700" : "text-orange-600"}>
+                                              {" "}({price > 0 ? "+" : "-"}₹{fmtPrice(Math.abs(price))})
+                                            </span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
                                     {note && <span className="block text-xs text-slate-500 font-normal mt-0.5 whitespace-pre-wrap">{note}</span>}
                                   </td>
                                 </tr>
@@ -619,6 +673,13 @@ function NewJobPage() {
                   })}
                 </tbody>
               </table>
+
+              {printMode === "priced" && (
+                <div className="mt-6 mb-2 break-inside-avoid flex justify-between items-center bg-slate-900 text-white px-5 py-3 rounded-lg">
+                  <span className="text-sm font-semibold uppercase tracking-widest">Total Estimate</span>
+                  <span className="text-2xl font-extrabold">₹{currentEstimate.toLocaleString("en-IN")}</span>
+                </div>
+              )}
 
               <div className="break-inside-avoid mt-8">
                 <div className="pt-4 border-t border-slate-300">
