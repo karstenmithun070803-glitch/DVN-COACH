@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -34,6 +34,7 @@ interface SpecMasterManagerProps {
   model: BaseModels;
   specGroups: SpecCategoryGroup[];
   standardSelections: Record<string, string>;
+  afterGroupSlot?: { groupName: string; element: React.ReactNode };
 }
 
 // ─── Level 1: Sortable Option Chip ────────────────────────────────────────────
@@ -685,7 +686,7 @@ function SortableGroupCard({
 
 // ─── Root: SpecMasterManager ───────────────────────────────────────────────────
 
-export function SpecMasterManager({ model, specGroups, standardSelections }: SpecMasterManagerProps) {
+export function SpecMasterManager({ model, specGroups, standardSelections, afterGroupSlot }: SpecMasterManagerProps) {
   const { reorderGroups, addOption, addField, removeOption, removeField } = useAdminSettings();
   const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -748,18 +749,20 @@ export function SpecMasterManager({ model, specGroups, standardSelections }: Spe
         >
           <div className="space-y-4">
             {specGroups.map(group => (
-              <SortableGroupCard
-                key={group.groupName}
-                group={group}
-                model={model}
-                standardSelections={standardSelections}
-                isOpen={activeAccordion === group.groupName}
-                onToggle={() =>
-                  setActiveAccordion(prev => (prev === group.groupName ? "" : group.groupName))
-                }
-                sensors={sensors}
-                onRequestBroadcast={setPendingAction}
-              />
+              <Fragment key={group.groupName}>
+                <SortableGroupCard
+                  group={group}
+                  model={model}
+                  standardSelections={standardSelections}
+                  isOpen={activeAccordion === group.groupName}
+                  onToggle={() =>
+                    setActiveAccordion(prev => (prev === group.groupName ? "" : group.groupName))
+                  }
+                  sensors={sensors}
+                  onRequestBroadcast={setPendingAction}
+                />
+                {afterGroupSlot?.groupName === group.groupName && afterGroupSlot.element}
+              </Fragment>
             ))}
           </div>
         </SortableContext>

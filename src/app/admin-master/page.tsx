@@ -75,14 +75,17 @@ export default function AdminMasterPage() {
           />
         </div>
 
-        {/* Right Column: Spec Manager + Seating Rows */}
+        {/* Right Column: Spec Manager (Seating Capacity injected after FITTINGS) */}
         <div className="lg:col-span-8 space-y-8">
           <SpecMasterManager
             model={selectedModel}
             specGroups={activeProfile.specGroups}
             standardSelections={activeProfile.standardSelections}
+            afterGroupSlot={{
+              groupName: "FITTINGS",
+              element: <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} />,
+            }}
           />
-          <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} />
         </div>
       </div>
     </div>
