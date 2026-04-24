@@ -1010,7 +1010,7 @@ function NewJobPage() {
                         >
                           <h3 className="text-base font-semibold text-[#475569]">
                             {t("SEATING CAPACITY", isTamil)}
-                            {seatingTotal > 0 && <span className="ml-3 text-teal-600 font-bold">{seatingTotal} Seats</span>}
+                            {seatingTotal > 0 && <span className="ml-3 text-teal-600 font-bold">{seatingTotal} {t("Seats", isTamil)}</span>}
                           </h3>
                           {activeSection === "SEATING CAPACITY" ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                         </div>
@@ -1020,12 +1020,12 @@ function NewJobPage() {
                               <table className="w-full text-[14px]">
                                 <thead>
                                   <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                    <th className="text-left pb-4 min-w-[100px]">Location</th>
-                                    <th className="text-left pb-4 min-w-[80px]">Type</th>
+                                    <th className="text-left pb-4 min-w-[100px]">{t("Location", isTamil)}</th>
+                                    <th className="text-left pb-4 min-w-[80px]">{t("Type", isTamil)}</th>
                                     <th className="text-center pb-4 w-10">×</th>
-                                    <th className="text-center pb-4 min-w-[100px]">Rows (Qty)</th>
+                                    <th className="text-center pb-4 min-w-[100px]">{t("Rows (Qty)", isTamil)}</th>
                                     <th className="text-center pb-4 w-10">=</th>
-                                    <th className="text-right pb-4 min-w-[60px]">Seats</th>
+                                    <th className="text-right pb-4 min-w-[60px]">{t("Seats", isTamil)}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1055,7 +1055,7 @@ function NewJobPage() {
                                 </tbody>
                                 <tfoot>
                                   <tr className="border-t-2 border-slate-200">
-                                    <td colSpan={5} className="pt-4 text-sm font-bold text-slate-700 uppercase tracking-wide">Total</td>
+                                    <td colSpan={5} className="pt-4 text-sm font-bold text-slate-700 uppercase tracking-wide">{t("Total", isTamil)}</td>
                                     <td className="pt-4 text-right text-xl font-extrabold text-teal-600">{seatingTotal > 0 ? seatingTotal : "—"}</td>
                                   </tr>
                                 </tfoot>

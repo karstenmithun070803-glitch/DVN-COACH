@@ -218,6 +218,7 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "Location": "இடம்",
   "Type": "வகை",
   "Rows": "வரிசைகள்",
+  "Rows (Qty)": "வரிசைகள் (எண்)",
   "Seats": "இருக்கைகள்",
   "Total": "மொத்தம்",
 
