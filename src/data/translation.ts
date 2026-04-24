@@ -296,9 +296,68 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "1 Pass": "1 நபர்",
   "2+1": "2+1",
   "1+1": "1+1",
+
+  // Admin-added specs & options (new)
+  // ── New category names ─────────────────────────────────────────────────────
+  "ROOF LUGGAGE CARRIER SIDE PLANKS": "கூரை லக்கேஜ் சைட் பலகை",
+  "ROOF LUGGAGE CARRIER name board": "கூரை லக்கேஜ் நேம் போர்டு",
+  "Fire detection alarm & suspension system": "தீ கண்டறிவு அலாரம் & சஸ்பென்ஷன் சிஸ்டம்",
+  "Emergency lighting": "அவசர விளக்கு",
+  "SoS Switch": "SoS ஸ்விட்ச்",
+  "JK Door Manual": "ஜேகே டோர் மேனுவல்",
+  "Vangu type": "வாங்கு டைப்",
+  "TOP VENDILATOR": "டாப் வெண்டிலேட்டர்",
+  "Jet One Glass": "ஜெட் ஒன் கிளாஸ்",
+  "Front Back SS BUMBER": "முன் பின் SS பம்பர்",
+  "Front SS Bumber": "முன் SS பம்பர்",
+  "Front SS BUMBER": "முன் SS பம்பர்",
+  "Flooring Foot Step Alu Cheq Sheet": "ஃப்ளோரிங் புட்ஸ்டெப் அலு செக்கர் ஷீட்",
+  "VIVA ACP PARTY REQUIREMENT": "விவா ACP பார்ட்டி ரிக்குவைர்மண்ட்",
+  "CUSTOMER REQIREMENTS ( EXTRAS )": "வாடிக்கையாளர் தேவைகள் ( கூடுதல் )",
+  "Matt": "மேட்",
+  "Bottom Alu Sheet": "பாட்டம் அலு ஷீட்",
+  "DVN Seat": "DVN சீட்",
+  "15mm Plywood": "15மிமீ பிளைவுட்",
+  "Extra Side Dickey": "கூடுதல் சைடு டிக்கி",
+  "JK Door pneumatic": "ஜேகே டோர் ந்யூமேட்டிக்",
+  "Hatrack Travels Beeding + IGR": "ஹாட்ராக் டிராவல்ஸ் பீடிங் + IGR",
+  "Headrest Name Print": "ஹெட்ரெஸ்ட் நேம் பிரிண்ட்",
+  "CORBARATION LIGHT": "கார்பரேஷன் லைட்",
+  "VOLVO MIRROR": "வால்வோ மிரர்",
+  "Front Back SS Bumber": "முன் பின் SS பம்பர்",
+
+  // ── New option values ──────────────────────────────────────────────────────
+  "JET - 1": "ஜெட் - 1",
+  "54\" x 87\"": "54\" x 87\"",
+  "54\"x87\"": "54\"x87\"",
+  "Toughened glass": "டஃப்னட் கிளாஸ்",
+  "Infront of Front tier": "முன் டயர் முன்புறம்",
+  "Sun Type": "சன் டைப்",
+  "Velmurugan": "வேல்முருகன்",
+  "SUTLEJ": "சட்லெஜ்",
+  "Kerela": "கேரளா",
+  "Box type": "பாக்ஸ் டைப்",
+  "Centre - 2 No": "சென்டர் - 2 நோ",
+  "Jeeva S-Bend": "ஜீவா எஸ்-பெண்ட்",
+  "48\"": "48\"",
+  "4D": "4டி",
+  "Both": "இரண்டும்",
+  "Bottom Alu sheet": "பாட்டம் அலு ஷீட்",
+  "Step ceiling": "ஸ்டெப் சீலிங்",
+  "Extra Side dickey": "கூடுதல் சைடு டிக்கி",
+  "J.K Door Pneumatic - Single Door": "ஜேகே டோர் ந்யூமேட்டிக் - சிங்கிள் டோர்",
+  "JK DOOR PNEUMATIC - Double Door": "ஜேகே டோர் ந்யூமேட்டிக் - டபுள் டோர்",
+  "Hatrack TRAVELS BEEDING + IGR": "ஹாட்ராக் டிராவல்ஸ் பீடிங் + IGR",
+  "Headrest NAME PRINT": "ஹெட்ரெஸ்ட் நேம் பிரிண்ட்",
 };
 
 export function t(key: string, enabled: boolean = false): string {
   if (!enabled) return key;
-  return TAMIL_TRANSLATIONS[key] || key;
+  // Exact match first; fall back to case-insensitive lookup so admin-typed
+  // ALL-CAPS or mixed-case variants resolve to the same Tamil translation.
+  if (TAMIL_TRANSLATIONS[key]) return TAMIL_TRANSLATIONS[key];
+  const lower = key.toLowerCase();
+  const caseInsensitiveMatch = Object.keys(TAMIL_TRANSLATIONS).find(k => k.toLowerCase() === lower);
+  if (caseInsensitiveMatch) return TAMIL_TRANSLATIONS[caseInsensitiveMatch];
+  return key;
 }
