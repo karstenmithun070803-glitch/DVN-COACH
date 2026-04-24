@@ -524,40 +524,40 @@ function NewJobPage() {
             <div className="px-2 py-6" style={{ position: "relative", zIndex: 1 }}>
               <div className="text-center w-full block mb-8">
                 <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-1 text-slate-900">Durga Industries</h1>
-                <p className="text-base font-bold uppercase tracking-widest text-slate-800">Specifications for Body Building</p>
+                <p className="text-base font-bold uppercase tracking-widest text-slate-800">{t("Specifications for Body Building", isTamil)}</p>
                 <p className="text-xs text-gray-700 mt-1 max-w-lg mx-auto">SF.NO. 1994/2 Madurai New Bye Pass Road Near Periyar Arch, Karur - 639008</p>
               </div>
 
               <div className="flex justify-between gap-12 text-sm border-b border-slate-400 pb-5 mb-5">
                 <div className="flex flex-col gap-5 w-1/2">
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Customer Name:</strong>
+                    <strong className="shrink-0 mr-3">{t("Customer Name:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.customerName}</div>
                   </div>
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Mobile No:</strong>
+                    <strong className="shrink-0 mr-3">{t("Mobile No:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.mobileNo}</div>
                   </div>
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Address:</strong>
+                    <strong className="shrink-0 mr-3">{t("Address:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.address}</div>
                   </div>
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Date:</strong>
+                    <strong className="shrink-0 mr-3">{t("Date:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.date}</div>
                   </div>
                 </div>
                 <div className="flex flex-col gap-5 w-1/2">
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Job No:</strong>
+                    <strong className="shrink-0 mr-3">{t("Job No:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.jobNo}</div>
                   </div>
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Chassis No:</strong>
+                    <strong className="shrink-0 mr-3">{t("Chassis No:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.chassisNo}</div>
                   </div>
                   <div className="flex w-full items-end">
-                    <strong className="shrink-0 mr-3">Engine No:</strong>
+                    <strong className="shrink-0 mr-3">{t("Engine No:", isTamil)}</strong>
                     <div className="border-b border-black flex-grow font-bold px-2">{basicInfo.engineNo}</div>
                   </div>
                 </div>
@@ -648,12 +648,12 @@ function NewJobPage() {
                               <table className="w-full text-sm border-collapse">
                                 <thead>
                                   <tr className="text-xs text-slate-500 uppercase">
-                                    <th className="text-left pb-1 font-semibold">Location</th>
-                                    <th className="text-left pb-1 font-semibold">Type</th>
+                                    <th className="text-left pb-1 font-semibold">{t("Location", isTamil)}</th>
+                                    <th className="text-left pb-1 font-semibold">{t("Type", isTamil)}</th>
                                     <th className="text-center pb-1 font-semibold">×</th>
-                                    <th className="text-center pb-1 font-semibold">Rows</th>
+                                    <th className="text-center pb-1 font-semibold">{t("Rows", isTamil)}</th>
                                     <th className="text-center pb-1 font-semibold">=</th>
-                                    <th className="text-right pb-1 font-semibold">Seats</th>
+                                    <th className="text-right pb-1 font-semibold">{t("Seats", isTamil)}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -670,7 +670,7 @@ function NewJobPage() {
                                 </tbody>
                                 <tfoot>
                                   <tr className="border-t border-slate-400">
-                                    <td colSpan={5} className="pt-1 font-bold">Total</td>
+                                    <td colSpan={5} className="pt-1 font-bold">{t("Total", isTamil)}</td>
                                     <td className="pt-1 text-right font-extrabold text-lg">{seatingPrintTotal}</td>
                                   </tr>
                                 </tfoot>
@@ -694,31 +694,31 @@ function NewJobPage() {
               <div className="break-inside-avoid mt-8">
                 <div className="pt-4 border-t border-slate-300">
                   <p className="text-sm">
-                    <span className="font-bold underline">Extras:</span>
-                    &nbsp; 1. Art Work&nbsp;&nbsp; 2. Audio &amp; Videos&nbsp;&nbsp; 3. Decorative Lights&nbsp;&nbsp; 4. Stickers&nbsp;&nbsp; 5. Driver seat
+                    <span className="font-bold underline">{t("Extras:", isTamil)}</span>
+                    &nbsp; {t("1. Art Work", isTamil)}&nbsp;&nbsp; {t("2. Audio & Videos", isTamil)}&nbsp;&nbsp; {t("3. Decorative Lights", isTamil)}&nbsp;&nbsp; {t("4. Stickers", isTamil)}&nbsp;&nbsp; {t("5. Driver seat", isTamil)}
                   </p>
                   <div className="text-sm mt-2">
-                    <p className="font-bold underline italic">Note:</p>
+                    <p className="font-bold underline italic">{t("Note:", isTamil)}</p>
                     <ul className="mt-1 space-y-0.5 list-none">
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> Advance 50 %</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> Full Settlement before two days at the time of delivery</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> After 6 PM Vehicle will not be delivered</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> If there are any changes, please inform us before the job</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> In case of any disagreement, they are subjected to karur jurisdictions</li>
-                      <li><span style={{ fontSize: "0.7em" }}>●</span> <span className="font-bold">NO Changes will be made after final selection</span></li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> {t("Advance 50 %", isTamil)}</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> {t("Full Settlement before two days at the time of delivery", isTamil)}</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> {t("After 6 PM Vehicle will not be delivered", isTamil)}</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> {t("If there are any changes, please inform us before the job", isTamil)}</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> {t("In case of any disagreement, they are subjected to karur jurisdictions", isTamil)}</li>
+                      <li><span style={{ fontSize: "0.7em" }}>●</span> <span className="font-bold">{t("NO Changes will be made after final selection", isTamil)}</span></li>
                     </ul>
                   </div>
                 </div>
                 <div className="mt-8 grid grid-cols-2">
                   <div>
-                    <p className="text-sm">Customer Sign</p>
+                    <p className="text-sm">{t("Customer Sign", isTamil)}</p>
                     <div style={{ height: "50px" }} />
-                    <p className="text-sm">Date:</p>
+                    <p className="text-sm">{t("Date:", isTamil)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm">for Durga Industries</p>
+                    <p className="text-sm">{t("for Durga Industries", isTamil)}</p>
                     <div style={{ height: "50px" }} />
-                    <p className="text-sm">Manager</p>
+                    <p className="text-sm">{t("Manager", isTamil)}</p>
                   </div>
                 </div>
               </div>

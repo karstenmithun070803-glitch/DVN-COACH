@@ -199,6 +199,48 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "Rubber": "ரப்பர்",
   "As per Grill": "ஆஸ் பெர் கிரில்",
 
+  // Missing option values
+  "Kerala Series": "கேரளா சீரிஸ்",
+  "5200mm": "5200 மிமீ",
+  "210\"": "210\"",
+
+  // Print — customer info labels
+  "Specifications for Body Building": "பாடி பில்டிங் விவரக்குறிப்பு",
+  "Customer Name:": "வாடிக்கையாளர் பெயர்:",
+  "Mobile No:": "மொபைல் எண்:",
+  "Address:": "முகவரி:",
+  "Date:": "தேதி:",
+  "Job No:": "வேலை எண்:",
+  "Chassis No:": "சேஸி எண்:",
+  "Engine No:": "என்ஜின் எண்:",
+
+  // Print — seating table headers
+  "Location": "இடம்",
+  "Type": "வகை",
+  "Rows": "வரிசைகள்",
+  "Seats": "இருக்கைகள்",
+  "Total": "மொத்தம்",
+
+  // Print — extras & note footer
+  "Extras:": "கூடுதல்:",
+  "Note:": "குறிப்பு:",
+  "1. Art Work": "1. ஆர்ட் வொர்க்",
+  "2. Audio & Videos": "2. ஆடியோ & வீடியோஸ்",
+  "3. Decorative Lights": "3. டெக்கரேட்டிவ் லைட்ஸ்",
+  "4. Stickers": "4. ஸ்டிக்கர்ஸ்",
+  "5. Driver seat": "5. டிரைவர் சீட்",
+  "Advance 50 %": "முன்பணம் 50 %",
+  "Full Settlement before two days at the time of delivery": "டெலிவரி நேரத்தில் இரண்டு நாட்களுக்கு முன்பு முழுத் தீர்வு",
+  "After 6 PM Vehicle will not be delivered": "மாலை 6 மணிக்குப் பிறகு வாகனம் வழங்கப்படாது",
+  "If there are any changes, please inform us before the job": "ஏதேனும் மாற்றங்கள் இருந்தால், வேலைக்கு முன்பு தெரிவிக்கவும்",
+  "In case of any disagreement, they are subjected to karur jurisdictions": "ஏதேனும் கருத்து வேறுபாடு ஏற்பட்டால், கரூர் நீதி வளாகத்தில் தீர்வு காணப்படும்",
+  "NO Changes will be made after final selection": "இறுதி தேர்வுக்குப் பிறகு எந்த மாற்றமும் செய்யப்படாது",
+
+  // Print — signature
+  "Customer Sign": "வாடிக்கையாளர் கையெழுத்து",
+  "for Durga Industries": "துர்கா இண்டஸ்ட்ரீஸ் சார்பாக",
+  "Manager": "மேலாளர்",
+
   // Dimensions & measurements
   "222\"": "222\"",
   "ROH": "ஆர்ஓஹெச்",
