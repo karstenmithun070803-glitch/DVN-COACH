@@ -499,7 +499,7 @@ function NewJobPage() {
                 @top-right { content: ""; }
                 @bottom-left { content: ""; border-top: 1px solid #cbd5e1; }
                 @bottom-center { content: ""; border-top: 1px solid #cbd5e1; }
-                @bottom-right { content: none; }
+                @bottom-right { content: ""; border-top: 1px solid #cbd5e1; }
               }
               html, body { background: white !important; }
               * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
