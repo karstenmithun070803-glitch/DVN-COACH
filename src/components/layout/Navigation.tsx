@@ -10,7 +10,7 @@ import { LogOut } from "lucide-react";
 const NAV_ITEMS = [
   { name: "New Job", href: "/new-job" },
   { name: "The Vault", href: "/vault" },
-  { name: "Admin Master", href: "/admin-master" },
+  { name: "Super Admin", href: "/admin-master" },
 ];
 
 export function Navigation() {
