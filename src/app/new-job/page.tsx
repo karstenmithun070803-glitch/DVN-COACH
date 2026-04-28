@@ -8,6 +8,7 @@ import { cn } from "@/utils/cn";
 import { BaseModels, DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { useJobs } from "@/context/JobsContext";
+import { useAuth } from "@/context/AuthContext";
 import { t } from "@/data/translation";
 
 const DRAFT_NEW_KEY = "dvn-new-job-draft";
@@ -42,6 +43,7 @@ function NewJobPage() {
 
   const { profiles, isLoaded } = useAdminSettings();
   const { addJob, updateJob, jobs } = useJobs();
+  const { displayName } = useAuth();
 
   const [activeModel, setActiveModel] = useState<BaseModels>("Town");
   const [selections, setSelections] = useState<Record<string, string[]>>({});
@@ -263,6 +265,7 @@ function NewJobPage() {
         ...jobData,
         stage: "Chassis Arrival" as const,
         status: "active" as const,
+        createdBy: displayName ?? "DVN Vijay",
       });
       localStorage.removeItem(DRAFT_NEW_KEY);
       router.push("/vault");

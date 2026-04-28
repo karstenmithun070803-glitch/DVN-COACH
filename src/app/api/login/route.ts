@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
   }
 
   const role = isAdmin ? "SUPER_ADMIN" : "STAFF";
+  const displayName = isAdmin ? "DVN Vijay" : username;
   const expires = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
   const token = createHmac("sha256", secret).update(`${username}:${expires}`).digest("hex");
 
-  return Response.json({ ok: true, token, expires, role });
+  return Response.json({ ok: true, token, expires, role, displayName });
 }

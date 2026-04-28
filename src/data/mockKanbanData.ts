@@ -24,6 +24,7 @@ export interface JobCard {
   totalEstimate?: number;
   status: "active" | "delivered" | "archived";
   deliveredDate?: string;
+  createdBy?: string;
 }
 
 export const STAGES: ProductionStage[] = [

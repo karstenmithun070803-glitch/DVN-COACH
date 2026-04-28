@@ -10,12 +10,14 @@ interface Session {
   token: string;
   expires: number;
   role: Role;
+  displayName: string;
 }
 
 interface AuthContextType {
   isLoggedIn: boolean;
   isChecked: boolean;
   role: Role | null;
+  displayName: string | null;
   login: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
 }
@@ -26,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -35,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session.token && session.expires > Date.now()) {
           setIsLoggedIn(true);
           setRole(session.role ?? "SUPER_ADMIN");
+          setDisplayName(session.displayName ?? "DVN Vijay");
         } else {
           localStorage.removeItem(SESSION_KEY);
         }
@@ -55,9 +59,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       if (data.ok) {
         const sessionRole: Role = data.role ?? "SUPER_ADMIN";
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, expires: data.expires, role: sessionRole }));
+        const sessionDisplayName: string = data.displayName ?? "DVN Vijay";
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          token: data.token,
+          expires: data.expires,
+          role: sessionRole,
+          displayName: sessionDisplayName,
+        }));
         setIsLoggedIn(true);
         setRole(sessionRole);
+        setDisplayName(sessionDisplayName);
         return { ok: true };
       }
       return { ok: false, error: data.error ?? "Invalid credentials" };
@@ -70,10 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(SESSION_KEY);
     setIsLoggedIn(false);
     setRole(null);
+    setDisplayName(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, isChecked, role, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, isChecked, role, displayName, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

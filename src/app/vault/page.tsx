@@ -354,9 +354,12 @@ export default function VaultPage() {
                   className="p-6 pb-4 flex justify-between items-start border-b border-slate-50 bg-white group-hover:bg-teal-50/10 transition-colors text-left w-full"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
                         {job.jobNo}
+                      </span>
+                      <span className="ml-auto text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                        {job.createdBy ?? "DVN Vijay"}
                       </span>
                       {job.status === "active" && (
                         <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
