@@ -358,7 +358,7 @@ export default function VaultPage() {
                       <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
                         {job.jobNo}
                       </span>
-                      <span className="ml-auto text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                      <span className="ml-auto text-[10px] font-black text-slate-700 bg-slate-200 px-2.5 py-1 rounded-full uppercase tracking-wide">
                         {job.createdBy ?? "DVN Vijay"}
                       </span>
                       {job.status === "active" && (
