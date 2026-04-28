@@ -77,7 +77,8 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
     if (isSupabaseConfigured) {
-      await supabase.from("jobs").insert(newJob);
+      const { error } = await supabase.from("jobs").insert(newJob);
+      if (error) console.error("[Jobs] Supabase insert failed:", error.message);
     }
   };
 
