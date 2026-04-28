@@ -4,14 +4,18 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const SESSION_KEY = "dvn-auth-session";
 
+type Role = "SUPER_ADMIN" | "STAFF";
+
 interface Session {
   token: string;
   expires: number;
+  role: Role;
 }
 
 interface AuthContextType {
   isLoggedIn: boolean;
   isChecked: boolean;
+  role: Role | null;
   login: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
 }
@@ -21,8 +25,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [role, setRole] = useState<Role | null>(null);
 
-  // On mount, check localStorage for a valid unexpired session
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -30,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const session: Session = JSON.parse(raw);
         if (session.token && session.expires > Date.now()) {
           setIsLoggedIn(true);
+          setRole(session.role ?? "SUPER_ADMIN");
         } else {
           localStorage.removeItem(SESSION_KEY);
         }
@@ -49,8 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       const data = await res.json();
       if (data.ok) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, expires: data.expires }));
+        const sessionRole: Role = data.role ?? "SUPER_ADMIN";
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, expires: data.expires, role: sessionRole }));
         setIsLoggedIn(true);
+        setRole(sessionRole);
         return { ok: true };
       }
       return { ok: false, error: data.error ?? "Invalid credentials" };
@@ -62,10 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
     setIsLoggedIn(false);
+    setRole(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, isChecked, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, isChecked, role, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

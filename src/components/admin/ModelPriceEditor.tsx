@@ -8,9 +8,10 @@ import { IndianRupee, Save } from "lucide-react";
 interface ModelPriceEditorProps {
   model: BaseModels;
   basePrice: number;
+  readOnly?: boolean;
 }
 
-export function ModelPriceEditor({ model, basePrice }: ModelPriceEditorProps) {
+export function ModelPriceEditor({ model, basePrice, readOnly }: ModelPriceEditorProps) {
   const { updateBasePrice } = useAdminSettings();
   const [localPrice, setLocalPrice] = useState(basePrice.toString());
 
@@ -35,28 +36,35 @@ export function ModelPriceEditor({ model, basePrice }: ModelPriceEditorProps) {
       <div className="p-6">
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Starting Price</label>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <IndianRupee className="h-5 w-5 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
+          {readOnly ? (
+            <div className="flex items-center gap-2 pl-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl">
+              <IndianRupee className="h-5 w-5 text-slate-400 flex-shrink-0" />
+              <span className="text-2xl font-black text-slate-800">{basePrice.toLocaleString("en-IN")}</span>
             </div>
-            <input
-              type="number"
-              step="0.01"
-              value={localPrice}
-              onChange={(e) => setLocalPrice(e.target.value)}
-              className="block w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-2xl font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-              placeholder="0.00"
-            />
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-              <button 
-                onClick={handleSave}
-                className="p-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-lg shadow-teal-600/20 transition-all transform active:scale-95"
-                title="Save Price"
-              >
-                <Save className="w-4 h-4" />
-              </button>
+          ) : (
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <IndianRupee className="h-5 w-5 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                value={localPrice}
+                onChange={(e) => setLocalPrice(e.target.value)}
+                className="block w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-2xl font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                placeholder="0.00"
+              />
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+                <button
+                  onClick={handleSave}
+                  className="p-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-lg shadow-teal-600/20 transition-all transform active:scale-95"
+                  title="Save Price"
+                >
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -10,9 +10,10 @@ interface Props {
   model: BaseModels;
   isOpen: boolean;
   onToggle: () => void;
+  readOnly?: boolean;
 }
 
-export function SeatingRowsManager({ model, isOpen, onToggle }: Props) {
+export function SeatingRowsManager({ model, isOpen, onToggle, readOnly }: Props) {
   const { profiles, addSeatingRow, updateSeatingRow, removeSeatingRow } = useAdminSettings();
   const rows = profiles[model]?.seatingRows ?? DEFAULT_SEATING_ROWS;
 
@@ -61,8 +62,8 @@ export function SeatingRowsManager({ model, isOpen, onToggle }: Props) {
           )}
         </button>
 
-        {/* + button, only when open */}
-        {isOpen && (
+        {/* + button, only when open and not read-only */}
+        {isOpen && !readOnly && (
           <button
             type="button"
             onClick={() => setIsAdding(v => !v)}
@@ -173,13 +174,15 @@ export function SeatingRowsManager({ model, isOpen, onToggle }: Props) {
                       />
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <button
-                        onClick={() => removeSeatingRow(model, row.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white rounded-md transition-all transform active:scale-90"
-                        title="Delete row"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!readOnly && (
+                        <button
+                          onClick={() => removeSeatingRow(model, row.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white rounded-md transition-all transform active:scale-90"
+                          title="Delete row"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

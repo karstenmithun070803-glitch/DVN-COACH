@@ -6,6 +6,7 @@ import { Search, Printer, Edit, History, Copy, Trash2, X, Truck } from "lucide-r
 import { cn } from "@/utils/cn";
 import { useJobs } from "@/context/JobsContext";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
+import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { JobCard } from "@/data/mockKanbanData";
 import { t } from "@/data/translation";
@@ -13,6 +14,7 @@ import { t } from "@/data/translation";
 export default function VaultPage() {
   const { jobs, isLoaded, deleteJobPermanently, deliverJob } = useJobs();
   const { profiles } = useAdminSettings();
+  const { role } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "delivered">("all");
@@ -311,13 +313,15 @@ export default function VaultPage() {
                   "hover:border-teal-100"
                 )}
               >
-                {/* Delete Trigger */}
-                <button
-                  onClick={() => setDeletingId(job.id)}
-                  className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-100"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {/* Delete Trigger — Super Admin only */}
+                {role === "SUPER_ADMIN" && (
+                  <button
+                    onClick={() => setDeletingId(job.id)}
+                    className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-100"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
 
                 {/* Confirm Delete Overlay */}
                 {deletingId === job.id && (

@@ -34,6 +34,7 @@ interface SpecMasterManagerProps {
   model: BaseModels;
   specGroups: SpecCategoryGroup[];
   standardSelections: Record<string, string>;
+  readOnly?: boolean;
   afterGroupSlot?: { groupName: string; element: React.ReactNode };
 }
 
@@ -156,6 +157,7 @@ interface SortableOptionChipProps {
   option: string;
   isDefault: boolean;
   optionPrice?: number;
+  readOnly?: boolean;
   onToggleStar: () => void;
   onRemove: () => void;
   onRename: (oldOpt: string, newOpt: string) => void;
@@ -166,6 +168,7 @@ function SortableOptionChip({
   option,
   isDefault,
   optionPrice,
+  readOnly,
   onToggleStar,
   onRemove,
   onRename,
@@ -244,42 +247,44 @@ function SortableOptionChip({
         </span>
       )}
 
-      {/* Inline price badge / editor */}
-      <div onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-        {editingPrice ? (
-          <input
-            autoFocus
-            type="number"
-            value={priceInput}
-            onChange={e => setPriceInput(e.target.value)}
-            onBlur={() => { onUpdatePrice(Number(priceInput) || 0); setEditingPrice(false); }}
-            onKeyDown={e => {
-              if (e.key === "Enter") { onUpdatePrice(Number(priceInput) || 0); setEditingPrice(false); }
-              if (e.key === "Escape") setEditingPrice(false);
-              e.stopPropagation();
-            }}
-            className="w-20 text-xs border border-slate-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400 text-slate-700 bg-white"
-            placeholder="₹ price"
-          />
-        ) : (
-          <button
-            onClick={() => { setPriceInput(String(optionPrice ?? "")); setEditingPrice(true); }}
-            className={cn(
-              "text-xs px-1.5 py-0.5 rounded transition-colors",
-              optionPrice && optionPrice !== 0
-                ? optionPrice > 0
-                  ? "bg-teal-50 text-teal-700 font-medium border border-teal-200"
-                  : "bg-orange-50 text-orange-600 font-medium border border-orange-200"
-                : isDefault
-                  ? "text-white/50 hover:text-white hover:bg-white/10"
-                  : "text-slate-300 hover:text-slate-500 hover:bg-slate-100"
-            )}
-            title="Set price for this option"
-          >
-            {optionPrice && optionPrice !== 0 ? `${optionPrice > 0 ? "+" : "-"}₹${fmtPrice(optionPrice)}` : "+₹"}
-          </button>
-        )}
-      </div>
+      {/* Inline price badge / editor — hidden in read-only mode */}
+      {!readOnly && (
+        <div onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+          {editingPrice ? (
+            <input
+              autoFocus
+              type="number"
+              value={priceInput}
+              onChange={e => setPriceInput(e.target.value)}
+              onBlur={() => { onUpdatePrice(Number(priceInput) || 0); setEditingPrice(false); }}
+              onKeyDown={e => {
+                if (e.key === "Enter") { onUpdatePrice(Number(priceInput) || 0); setEditingPrice(false); }
+                if (e.key === "Escape") setEditingPrice(false);
+                e.stopPropagation();
+              }}
+              className="w-20 text-xs border border-slate-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400 text-slate-700 bg-white"
+              placeholder="₹ price"
+            />
+          ) : (
+            <button
+              onClick={() => { setPriceInput(String(optionPrice ?? "")); setEditingPrice(true); }}
+              className={cn(
+                "text-xs px-1.5 py-0.5 rounded transition-colors",
+                optionPrice && optionPrice !== 0
+                  ? optionPrice > 0
+                    ? "bg-teal-50 text-teal-700 font-medium border border-teal-200"
+                    : "bg-orange-50 text-orange-600 font-medium border border-orange-200"
+                  : isDefault
+                    ? "text-white/50 hover:text-white hover:bg-white/10"
+                    : "text-slate-300 hover:text-slate-500 hover:bg-slate-100"
+              )}
+              title="Set price for this option"
+            >
+              {optionPrice && optionPrice !== 0 ? `${optionPrice > 0 ? "+" : "-"}₹${fmtPrice(optionPrice)}` : "+₹"}
+            </button>
+          )}
+        </div>
+      )}
 
       <div
         className="flex items-center border-l border-slate-100 pl-3 ml-1 group-hover:border-teal-400 transition-colors"
@@ -297,18 +302,20 @@ function SortableOptionChip({
         >
           <Star className={cn("w-3.5 h-3.5", isDefault && "fill-current")} />
         </button>
-        <button
-          onClick={e => { e.stopPropagation(); onRemove(); }}
-          className={cn(
-            "p-1.5 rounded-md transition-all",
-            isDefault
-              ? "text-white/60 hover:text-white hover:bg-white/10"
-              : "text-slate-300 hover:text-red-500 hover:bg-red-50"
-          )}
-          title="Delete Option"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        {!readOnly && (
+          <button
+            onClick={e => { e.stopPropagation(); onRemove(); }}
+            className={cn(
+              "p-1.5 rounded-md transition-all",
+              isDefault
+                ? "text-white/60 hover:text-white hover:bg-white/10"
+                : "text-slate-300 hover:text-red-500 hover:bg-red-50"
+            )}
+            title="Delete Option"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -322,6 +329,7 @@ interface SortableFieldRowProps {
   model: BaseModels;
   standardSelections: Record<string, string>;
   sensors: ReturnType<typeof useSensors>;
+  readOnly?: boolean;
   onRequestBroadcast: (action: PendingAction) => void;
 }
 
@@ -331,6 +339,7 @@ function SortableFieldRow({
   model,
   standardSelections,
   sensors,
+  readOnly,
   onRequestBroadcast,
 }: SortableFieldRowProps) {
   const {
@@ -440,25 +449,29 @@ function SortableFieldRow({
           >
             <StickyNote className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setAddingOption(v => !v)}
-            className="text-teal-600 hover:text-teal-700 p-1 rounded-md hover:bg-teal-50 transition-all"
-            title="Add New Option"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onRequestBroadcast({ type: "delete-field", groupName, fieldId: field.id, fieldName: field.name })}
-            className="text-slate-300 hover:text-rose-500 p-1 rounded-md hover:bg-rose-50 transition-all"
-            title="Delete Spec Row"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {!readOnly && (
+            <>
+              <button
+                onClick={() => setAddingOption(v => !v)}
+                className="text-teal-600 hover:text-teal-700 p-1 rounded-md hover:bg-teal-50 transition-all"
+                title="Add New Option"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onRequestBroadcast({ type: "delete-field", groupName, fieldId: field.id, fieldName: field.name })}
+                className="text-slate-300 hover:text-rose-500 p-1 rounded-md hover:bg-rose-50 transition-all"
+                title="Delete Spec Row"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Add Option Input */}
-      {addingOption && (
+      {/* Add Option Input — hidden in read-only mode */}
+      {!readOnly && addingOption && (
         <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
           <input
             autoFocus
@@ -496,6 +509,7 @@ function SortableFieldRow({
                 option={opt}
                 isDefault={standardSelections[field.name] === opt}
                 optionPrice={field.optionPricing?.[opt]}
+                readOnly={readOnly}
                 onToggleStar={() => {
                   const isActive = standardSelections[field.name] === opt;
                   setStandardSelection(model, field.name, isActive ? "" : opt);
@@ -524,6 +538,7 @@ interface SortableGroupCardProps {
   isOpen: boolean;
   onToggle: () => void;
   sensors: ReturnType<typeof useSensors>;
+  readOnly?: boolean;
   onRequestBroadcast: (action: PendingAction) => void;
 }
 
@@ -534,6 +549,7 @@ function SortableGroupCard({
   isOpen,
   onToggle,
   sensors,
+  readOnly,
   onRequestBroadcast,
 }: SortableGroupCardProps) {
   const { reorderFields } = useAdminSettings();
@@ -631,53 +647,56 @@ function SortableGroupCard({
                   model={model}
                   standardSelections={standardSelections}
                   sensors={sensors}
+                  readOnly={readOnly}
                   onRequestBroadcast={onRequestBroadcast}
                 />
               ))}
             </SortableContext>
           </DndContext>
 
-          {/* Add New Spec Row */}
-          <div className="border-t border-slate-100 pt-6">
-            {addingField ? (
-              <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
-                <input
-                  autoFocus
-                  type="text"
-                  value={newFieldName}
-                  onChange={e => setNewFieldName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") handleAddField();
-                    if (e.key === "Escape") { setAddingField(false); setNewFieldName(""); }
-                  }}
-                  className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                  placeholder="New spec name (e.g. Tyre Type)"
-                />
-                <button
-                  onClick={handleAddField}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => { setAddingField(false); setNewFieldName(""); }}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingField(true)}
-                className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-teal-600 transition-colors group"
-              >
-                <div className="w-6 h-6 rounded-lg border-2 border-dashed border-slate-200 group-hover:border-teal-400 flex items-center justify-center transition-colors">
-                  <Plus className="w-3.5 h-3.5" />
+          {/* Add New Spec Row — hidden in read-only mode */}
+          {!readOnly && (
+            <div className="border-t border-slate-100 pt-6">
+              {addingField ? (
+                <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newFieldName}
+                    onChange={e => setNewFieldName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleAddField();
+                      if (e.key === "Escape") { setAddingField(false); setNewFieldName(""); }
+                    }}
+                    className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    placeholder="New spec name (e.g. Tyre Type)"
+                  />
+                  <button
+                    onClick={handleAddField}
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all"
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => { setAddingField(false); setNewFieldName(""); }}
+                    className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                Add New Spec
-              </button>
-            )}
-          </div>
+              ) : (
+                <button
+                  onClick={() => setAddingField(true)}
+                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-teal-600 transition-colors group"
+                >
+                  <div className="w-6 h-6 rounded-lg border-2 border-dashed border-slate-200 group-hover:border-teal-400 flex items-center justify-center transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                  Add New Spec
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -686,7 +705,7 @@ function SortableGroupCard({
 
 // ─── Root: SpecMasterManager ───────────────────────────────────────────────────
 
-export function SpecMasterManager({ model, specGroups, standardSelections, afterGroupSlot }: SpecMasterManagerProps) {
+export function SpecMasterManager({ model, specGroups, standardSelections, readOnly, afterGroupSlot }: SpecMasterManagerProps) {
   const { reorderGroups, addOption, addField, removeOption, removeField } = useAdminSettings();
   const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -734,7 +753,7 @@ export function SpecMasterManager({ model, specGroups, standardSelections, after
 
   return (
     <>
-      {pendingAction && (
+      {!readOnly && pendingAction && (
         <BroadcastModal
           currentModel={model}
           isDelete={pendingAction.type === "delete-option" || pendingAction.type === "delete-field"}
@@ -759,6 +778,7 @@ export function SpecMasterManager({ model, specGroups, standardSelections, after
                     setActiveAccordion(prev => (prev === group.groupName ? "" : group.groupName))
                   }
                   sensors={sensors}
+                  readOnly={readOnly}
                   onRequestBroadcast={setPendingAction}
                 />
                 {afterGroupSlot?.groupName === group.groupName && afterGroupSlot.element}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
+import { useAuth } from "@/context/AuthContext";
 import { BaseModels } from "@/data/specs";
 import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
 import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
@@ -13,6 +14,8 @@ const ADMIN_DRAFT_KEY = "dvn-admin-master-draft";
 
 export default function AdminMasterPage() {
   const { profiles, isLoaded } = useAdminSettings();
+  const { role } = useAuth();
+  const readOnly = role === "STAFF";
   const [seatingOpen, setSeatingOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<BaseModels>(() => {
     if (typeof window === "undefined") return "Moffusil";
@@ -66,12 +69,19 @@ export default function AdminMasterPage() {
         </div>
       </div>
 
+      {readOnly && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 font-medium">
+          View only — contact the Admin to make changes.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Pricing & Extras */}
         <div className="lg:col-span-4 space-y-8">
           <ModelPriceEditor
             model={selectedModel}
             basePrice={activeProfile.basePrice}
+            readOnly={readOnly}
           />
         </div>
 
@@ -81,9 +91,10 @@ export default function AdminMasterPage() {
             model={selectedModel}
             specGroups={activeProfile.specGroups}
             standardSelections={activeProfile.standardSelections}
+            readOnly={readOnly}
             afterGroupSlot={{
               groupName: "FITTINGS",
-              element: <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} />,
+              element: <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} readOnly={readOnly} />,
             }}
           />
         </div>
