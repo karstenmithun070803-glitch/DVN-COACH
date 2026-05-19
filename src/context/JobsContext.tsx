@@ -11,6 +11,7 @@ interface JobsContextType {
   updateJob: (id: string, updates: Partial<JobCard>) => void;
   archiveJob: (id: string) => void;
   deliverJob: (id: string) => void;
+  undeliverJob: (id: string) => void;
   deleteJobPermanently: (id: string) => void;
   moveJob: (id: string, newStage: ProductionStage) => void;
   getNextJobNumber: () => string;
@@ -101,6 +102,10 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
     updateJob(id, { status: "delivered", deliveredDate: new Date().toISOString().split("T")[0] });
   };
 
+  const undeliverJob = (id: string) => {
+    updateJob(id, { status: "active", deliveredDate: undefined, stage: "Chassis Arrival" });
+  };
+
   const deleteJobPermanently = async (id: string) => {
     setJobs((prev) => {
       const updated = prev.filter((job) => job.id !== id);
@@ -120,7 +125,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <JobsContext.Provider
-      value={{ jobs, isLoaded, addJob, updateJob, archiveJob, deliverJob, deleteJobPermanently, moveJob, getNextJobNumber }}
+      value={{ jobs, isLoaded, addJob, updateJob, archiveJob, deliverJob, undeliverJob, deleteJobPermanently, moveJob, getNextJobNumber }}
     >
       {children}
     </JobsContext.Provider>

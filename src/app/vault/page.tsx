@@ -6,15 +6,13 @@ import { Search, Printer, Edit, History, Copy, Trash2, X, Truck } from "lucide-r
 import { cn } from "@/utils/cn";
 import { useJobs } from "@/context/JobsContext";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
-import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { JobCard } from "@/data/mockKanbanData";
 import { t } from "@/data/translation";
 
 export default function VaultPage() {
-  const { jobs, isLoaded, deleteJobPermanently, deliverJob } = useJobs();
+  const { jobs, isLoaded, deleteJobPermanently, deliverJob, undeliverJob } = useJobs();
   const { profiles } = useAdminSettings();
-  const { role } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "delivered">("all");
@@ -313,15 +311,13 @@ export default function VaultPage() {
                   "hover:border-teal-100"
                 )}
               >
-                {/* Delete Trigger — Super Admin only */}
-                {role === "SUPER_ADMIN" && (
-                  <button
-                    onClick={() => setDeletingId(job.id)}
-                    className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-100"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                {/* Delete Trigger */}
+                <button
+                  onClick={() => setDeletingId(job.id)}
+                  className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-100"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
 
                 {/* Confirm Delete Overlay */}
                 {deletingId === job.id && (
@@ -354,23 +350,25 @@ export default function VaultPage() {
                   className="p-6 pb-4 flex justify-between items-start border-b border-slate-50 bg-white group-hover:bg-teal-50/10 transition-colors text-left w-full"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded uppercase tracking-[0.1em] shrink-0">
                         {job.jobNo}
                       </span>
-                      <span className="ml-auto text-[10px] font-black text-slate-700 bg-slate-200 px-2.5 py-1 rounded-full uppercase tracking-wide">
-                        {job.createdBy ?? "DVN Vijay"}
-                      </span>
-                      {job.status === "active" && (
-                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
-                          Live Now
+                      <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-[10px] font-black text-slate-700 bg-slate-200 px-2.5 py-1 rounded-full uppercase tracking-wide">
+                          {job.createdBy ?? "DVN Vijay"}
                         </span>
-                      )}
-                      {job.status === "delivered" && (
-                        <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded uppercase tracking-[0.1em]">
-                          Delivered
-                        </span>
-                      )}
+                        {job.status === "active" && (
+                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded uppercase tracking-[0.1em]">
+                            Live Now
+                          </span>
+                        )}
+                        {job.status === "delivered" && (
+                          <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded uppercase tracking-[0.1em]">
+                            Delivered
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-teal-700 transition-colors truncate pr-8">
                        {job.customerName || "Untitled Customer"}
@@ -401,7 +399,7 @@ export default function VaultPage() {
                 </div>
 
                 {/* Card Bottom: Split Actions */}
-                <div className="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50">
+                <div className={cn("border-t border-slate-100 bg-slate-50/50", job.status === "delivered" ? "grid grid-cols-3" : "grid grid-cols-2")}>
                    <Link
                     href={`/new-job?editId=${job.id}`}
                     className="flex flex-col items-center justify-center gap-1.5 py-4 hover:bg-white transition-all text-slate-500 hover:text-teal-600 border-r border-slate-100"
@@ -412,11 +410,21 @@ export default function VaultPage() {
 
                   <Link
                     href={`/new-job?cloneId=${job.id}`}
-                    className="flex flex-col items-center justify-center gap-1.5 py-4 hover:bg-white transition-all text-slate-500 hover:text-teal-600"
+                    className={cn("flex flex-col items-center justify-center gap-1.5 py-4 hover:bg-white transition-all text-slate-500 hover:text-teal-600", job.status === "delivered" && "border-r border-slate-100")}
                   >
                     <Copy className="w-4 h-4" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Clone & Edit</span>
                   </Link>
+
+                  {job.status === "delivered" && (
+                    <button
+                      onClick={() => undeliverJob(job.id)}
+                      className="flex flex-col items-center justify-center gap-1.5 py-4 hover:bg-white transition-all text-slate-500 hover:text-emerald-600"
+                    >
+                      <Truck className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Move to Live</span>
+                    </button>
+                  )}
                 </div>
 
                 <button
