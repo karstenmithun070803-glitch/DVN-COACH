@@ -6,6 +6,7 @@ import { Search, Printer, Edit, History, Copy, Trash2, X, Truck } from "lucide-r
 import { cn } from "@/utils/cn";
 import { useJobs } from "@/context/JobsContext";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
+import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { JobCard } from "@/data/mockKanbanData";
 import { t } from "@/data/translation";
@@ -13,6 +14,7 @@ import { t } from "@/data/translation";
 export default function VaultPage() {
   const { jobs, isLoaded, deleteJobPermanently, deliverJob, undeliverJob } = useJobs();
   const { profiles } = useAdminSettings();
+  const { displayName } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "delivered">("all");
@@ -31,7 +33,8 @@ export default function VaultPage() {
           statusFilter === "all" ||
           (statusFilter === "active" && job.status === "active") ||
           (statusFilter === "delivered" && job.status === "delivered");
-        return matchesSearch && matchesStatus;
+        const matchesOwner = displayName === "Durai" ? job.createdBy === "Durai" : true;
+        return matchesSearch && matchesStatus && matchesOwner;
       })
       .sort((a, b) => {
         // Sort by creation time (timestamp embedded in id: "job-{Date.now()}")
