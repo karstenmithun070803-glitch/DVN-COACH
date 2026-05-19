@@ -212,7 +212,7 @@ function SortableOptionChip({
       className={cn(
         "group flex items-center gap-3 px-4 py-3 rounded-xl border transition-all cursor-grab active:cursor-grabbing touch-none",
         isDragging && "z-50 shadow-xl",
-        isDefault
+        isDefault || isEditing
           ? "bg-teal-600 border-teal-600 shadow-lg shadow-teal-600/20"
           : "bg-white border-slate-200 hover:border-teal-300"
       )}
