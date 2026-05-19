@@ -314,7 +314,7 @@ export default function VaultPage() {
                 {/* Delete Trigger */}
                 <button
                   onClick={() => setDeletingId(job.id)}
-                  className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-100"
+                  className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 z-10 border border-slate-100"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
