@@ -352,7 +352,7 @@ export default function VaultPage() {
                   onClick={() => setSelectedJob(job)}
                   className="p-6 pb-4 flex justify-between items-start border-b border-slate-50 bg-white group-hover:bg-teal-50/10 transition-colors text-left w-full"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded uppercase tracking-[0.1em] shrink-0">
                         {job.jobNo}
