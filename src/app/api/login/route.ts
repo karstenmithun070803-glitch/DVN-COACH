@@ -1,12 +1,22 @@
 import { createHmac } from "crypto";
+import { compare } from "bcryptjs";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    console.error("SESSION_SECRET environment variable is not set");
+    return Response.json({ ok: false, error: "Server configuration error" }, { status: 500 });
+  }
+
   const { username, password } = await req.json();
+
+  if (!username || !password) {
+    return Response.json({ ok: false, error: "Username and password are required" }, { status: 400 });
+  }
 
   const validUser = process.env.AUTH_USERNAME;
   const validPass = process.env.AUTH_PASSWORD;
-  const secret = process.env.SESSION_SECRET ?? "fallback";
 
   const isAdmin = validUser && validPass && username === validUser && password === validPass;
 
@@ -15,7 +25,12 @@ export async function POST(req: NextRequest) {
     try {
       const staffRaw = process.env.STAFF_CREDENTIALS;
       const staffList: { u: string; p: string }[] = staffRaw ? JSON.parse(staffRaw) : [];
-      isStaff = staffList.some(s => s.u === username && s.p === password);
+      const match = staffList.find(s => s.u === username);
+      if (match) {
+        // p may be a bcrypt hash (starts with $2b$) or legacy plaintext
+        const isBcrypt = match.p.startsWith("$2b$") || match.p.startsWith("$2a$");
+        isStaff = isBcrypt ? await compare(password, match.p) : match.p === password;
+      }
     } catch { /* malformed env var — treat as no staff */ }
   }
 
