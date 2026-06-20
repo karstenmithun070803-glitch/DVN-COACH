@@ -6,7 +6,12 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/utils/cn";
 import { JobCard } from "@/data/mockKanbanData";
+import { BaseModels } from "@/data/specs";
 import { useJobs } from "@/context/JobsContext";
+
+const MODEL_IMAGE_MAP: Partial<Record<BaseModels, string>> = {
+  "Moffusil": "Moffusil", "Town": "Town", "College": "College", "Staff": "Staff"
+};
 import { Trash2, Check, X, Edit2 } from "lucide-react";
 
 interface KanbanCardProps {
@@ -156,7 +161,7 @@ export function KanbanCard({ job, isDragging, onClick }: KanbanCardProps) {
         
         <div className="relative w-12 h-10 shrink-0 ml-2 rounded-md overflow-hidden bg-slate-50 flex items-center justify-center p-1 border border-slate-50">
           <Image 
-             src={`/images/${job.model}.png`} 
+             src={`/images/${MODEL_IMAGE_MAP[job.model as BaseModels] ?? "Moffusil"}.png`}
              alt={job.model} 
              fill 
              className="object-contain mix-blend-multiply opacity-80 group-hover:opacity-100 transition-opacity" 

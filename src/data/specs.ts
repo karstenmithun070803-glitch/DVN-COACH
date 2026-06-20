@@ -30,15 +30,17 @@ export interface SpecCategoryGroup {
   fields: Category[];
 }
 
-export type BaseModels = "Moffusil" | "Town" | "College" | "Staff" | "Kerala Series";
+export type BaseModels = "Moffusil" | "Town" | "College" | "Staff" | "Kerala Series" | "Travel Series" | "Mini Bus Series";
 
 // Export standard prices baseline
 export const BUS_MODELS_BASE = {
-  "Moffusil": { basePrice: 1500000 },
-  "Town": { basePrice: 1400000 },
-  "College": { basePrice: 1350000 },
-  "Staff": { basePrice: 1600000 },
-  "Kerala Series": { basePrice: 1500000 },
+  "Moffusil":        { basePrice: 1500000 },
+  "Town":            { basePrice: 1400000 },
+  "College":         { basePrice: 1350000 },
+  "Staff":           { basePrice: 1600000 },
+  "Kerala Series":   { basePrice: 1500000 },
+  "Travel Series":   { basePrice: 1500000 },
+  "Mini Bus Series": { basePrice: 1500000 },
 };
 
 export const SPEC_CONFIGURATOR: SpecCategoryGroup[] = [
@@ -46,7 +48,7 @@ export const SPEC_CONFIGURATOR: SpecCategoryGroup[] = [
     groupName: "CHASSIS",
     fields: [
       { id: "chassis-brand", name: "Chassis Brand", options: ["Leyland", "TATA", "Eicher"] },
-      { id: "body-type", name: "Body Type", options: ["Moffusil", "Town", "College", "Staff"] },
+      { id: "body-type", name: "Body Type", options: ["Moffusil", "Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"] },
     ]
   },
   {
@@ -347,5 +349,15 @@ export const STANDARD_VARIATIONS: Record<BaseModels, Record<string, string>> = {
     ...MOFFUSIL_BASE_SELECTIONS,
     "Body Type": "Kerala Series",
     "Wheel Base": "5200mm",
+  },
+
+  "Travel Series": {
+    ...MOFFUSIL_BASE_SELECTIONS,
+    "Body Type": "Travel Series",
+  },
+
+  "Mini Bus Series": {
+    ...MOFFUSIL_BASE_SELECTIONS,
+    "Body Type": "Mini Bus Series",
   },
 };

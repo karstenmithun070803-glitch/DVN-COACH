@@ -746,7 +746,7 @@ function NewJobPage() {
                   onChange={(e) => handleModelSelect(e.target.value as BaseModels)}
                   className="bg-slate-50 border border-slate-200 text-[#333333] text-sm font-bold uppercase rounded-md px-3 py-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
                 >
-                  {(["Moffusil", "Town", "College", "Staff", "Kerala Series"] as BaseModels[]).map((model) => (
+                  {(["Moffusil", "Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"] as BaseModels[]).map((model) => (
                     <option key={model} value={model}>{model.endsWith("Series") ? model : `${model} Series`}</option>
                   ))}
                 </select>
@@ -754,7 +754,7 @@ function NewJobPage() {
               <div className="h-48 w-full relative flex items-center justify-center p-4 bg-slate-50/50">
                 <div className="relative w-[90%] h-full flex items-center justify-center">
                   <Image
-                    src={`/images/${activeModel === "Kerala Series" ? "Moffusil" : activeModel}.png`}
+                    src={`/images/${(({ "Moffusil": "Moffusil", "Town": "Town", "College": "College", "Staff": "Staff" } as Partial<Record<BaseModels, string>>)[activeModel]) ?? "Moffusil"}.png`}
                     alt={`${activeModel} Bus Image`}
                     fill
                     className="object-contain drop-shadow-md mix-blend-multiply transition-transform duration-300 hover:scale-105"

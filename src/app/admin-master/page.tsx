@@ -9,7 +9,7 @@ import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
 import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
 import { Settings2, Bus } from "lucide-react";
 
-const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series"];
+const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"];
 const ADMIN_DRAFT_KEY = "dvn-admin-master-draft";
 
 export default function AdminMasterPage() {

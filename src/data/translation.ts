@@ -201,6 +201,8 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
 
   // Missing option values
   "Kerala Series": "கேரளா சீரிஸ்",
+  "Travel Series": "டிராவல் சீரிஸ்",
+  "Mini Bus Series": "மினி பஸ் சீரிஸ்",
   "5200mm": "5200 மிமீ",
   "210\"": "210\"",
 

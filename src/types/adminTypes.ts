@@ -2,7 +2,7 @@
 // Schema verified against live Supabase on 2026-06-20.
 // The admin_settings table has 2 columns: id (text "singleton") and profiles (jsonb).
 
-export type BaseModels = "Moffusil" | "Town" | "College" | "Staff" | "Kerala Series";
+export type BaseModels = "Moffusil" | "Town" | "College" | "Staff" | "Kerala Series" | "Travel Series" | "Mini Bus Series";
 
 export interface SeatingRowConfig {
   id: string;

@@ -53,7 +53,7 @@ type PendingAction =
   | { type: "delete-option"; groupName: string; fieldId: string; option: string }
   | { type: "delete-field"; groupName: string; fieldId: string; fieldName: string };
 
-const ALL_MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series"];
+const ALL_MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"];
 
 function BroadcastModal({
   currentModel,

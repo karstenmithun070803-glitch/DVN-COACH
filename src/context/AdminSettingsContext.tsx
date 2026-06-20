@@ -128,7 +128,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       // specGroups and extrasPricing are fully preserved.
       const hasSynced = localStorage.getItem(BASELINE_SYNC_KEY);
       if (!hasSynced) {
-        const allModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
+        const allModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Travel Series", "Mini Bus Series"];
         allModels.forEach(model => {
           if (currentProfiles[model]) {
             currentProfiles[model] = {
@@ -166,7 +166,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       const SEATING_ROWS_MIGRATION_KEY = "dvn-v6-seating-rows-init";
       const hasSeatingRows = localStorage.getItem(SEATING_ROWS_MIGRATION_KEY);
       if (!hasSeatingRows) {
-        const allModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff"];
+        const allModels: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Travel Series", "Mini Bus Series"];
         allModels.forEach(model => {
           if (currentProfiles[model] && !currentProfiles[model].seatingRows) {
             currentProfiles[model].seatingRows = structuredClone(DEFAULT_SEATING_ROWS);
@@ -264,7 +264,7 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       // Ensure all models have the same spec groups as Moffusil.
       // Kerala Series is included but gets a structuredClone so its custom
       // wheel-base options are preserved after the admin edits them.
-      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff", "Kerala Series"];
+      const modelsToCheck: BaseModels[] = ["Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"];
       const moffusilGroups = currentProfiles["Moffusil"]?.specGroups;
       if (moffusilGroups) {
         modelsToCheck.forEach(model => {
@@ -290,6 +290,57 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
           }
         });
         localStorage.setItem(EXTRA_PRICE_RENAME_KEY, "true");
+      }
+
+      // ─── Travel & Mini Bus Series Init (v10) ─────────────────────────────
+      // Adds Travel Series and Mini Bus Series profiles to existing installs.
+      // Both are seeded as pure Moffusil clones; admin customises via Admin Master.
+      const NEW_MODELS_MIGRATION_KEY = "dvn-v10-travel-minibus-series";
+      if (!localStorage.getItem(NEW_MODELS_MIGRATION_KEY)) {
+        const newModels: BaseModels[] = ["Travel Series", "Mini Bus Series"];
+        const moffusilExtras = currentProfiles["Moffusil"]?.extrasPricing ?? {
+          "art-work": 15000,
+          "audio-video": 45000,
+          "decorative-lights": 25000,
+          "stickers": 8000,
+          "bottom-aluminium-sheet-extra": 0,
+          "black-cobra-plywood-extra": 0,
+        };
+        newModels.forEach(model => {
+          if (!currentProfiles[model]) {
+            const specGroups = structuredClone(SPEC_CONFIGURATOR);
+            // Ensure body-type field includes this model's own name
+            const chassisGroup = specGroups.find((g: SpecCategoryGroup) => g.groupName === "CHASSIS");
+            if (chassisGroup) {
+              const btField = chassisGroup.fields.find((f: Category) => f.id === "body-type");
+              if (btField && !btField.options.includes(model)) btField.options = [...btField.options, model];
+            }
+            currentProfiles[model] = {
+              basePrice: BUS_MODELS_BASE[model].basePrice,
+              specGroups,
+              standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
+              extrasPricing: structuredClone(moffusilExtras),
+              structurePricing: {},
+              seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
+            };
+          }
+        });
+        // Add new model names to body-type options in all existing model profiles
+        const allExistingModels = Object.keys(currentProfiles) as BaseModels[];
+        allExistingModels.forEach(model => {
+          if (!newModels.includes(model) && currentProfiles[model]?.specGroups) {
+            const chassisGroup = currentProfiles[model].specGroups.find((g: SpecCategoryGroup) => g.groupName === "CHASSIS");
+            if (chassisGroup) {
+              const btField = chassisGroup.fields.find((f: Category) => f.id === "body-type");
+              if (btField) {
+                newModels.forEach(nm => {
+                  if (!btField.options.includes(nm)) btField.options = [...btField.options, nm];
+                });
+              }
+            }
+          }
+        });
+        localStorage.setItem(NEW_MODELS_MIGRATION_KEY, "true");
       }
 
     } else {
@@ -343,9 +394,31 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
         seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
       };
 
+      // Travel Series and Mini Bus Series — pure Moffusil clones on fresh install
+      const newSeriesModels: BaseModels[] = ["Travel Series", "Mini Bus Series"];
+      newSeriesModels.forEach(model => {
+        const specGroups = structuredClone(SPEC_CONFIGURATOR);
+        initialProfiles[model] = {
+          basePrice: BUS_MODELS_BASE[model].basePrice,
+          specGroups,
+          standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
+          extrasPricing: {
+            "art-work": 15000,
+            "audio-video": 45000,
+            "decorative-lights": 25000,
+            "stickers": 8000,
+            "bottom-aluminium-sheet-extra": 0,
+            "black-cobra-plywood-extra": 0,
+          },
+          structurePricing: {},
+          seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
+        };
+      });
+
       currentProfiles = initialProfiles as Record<BaseModels, BusModelProfile>;
       localStorage.setItem(RENAME_MIGRATION_KEY, "true");
       localStorage.setItem(FULL_SYNC_KEY, "true");
+      localStorage.setItem("dvn-v10-travel-minibus-series", "true");
     }
 
     // Both the localStorage and fresh-install paths converge here

@@ -226,8 +226,8 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
                           onBlur={() => setEditingModalField(null)}
                           className="text-xl font-bold text-slate-800 border-b border-teal-500 outline-none w-full bg-slate-50 cursor-pointer"
                         >
-                          {["Moffusil", "Town", "College", "Staff"].map(m => (
-                            <option key={m} value={m}>{m} Series</option>
+                          {(["Moffusil", "Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"] as import("@/data/specs").BaseModels[]).map(m => (
+                            <option key={m} value={m}>{m.endsWith("Series") ? m : `${m} Series`}</option>
                           ))}
                         </select>
                       ) : (
