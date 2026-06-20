@@ -87,6 +87,35 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
             localStorage.setItem(EXTRA_PRICE_RENAME_KEY, "true");
             migrationRan = true;
           }
+          // v10 — Travel Series & Mini Bus Series (Supabase path)
+          const NEW_MODELS_KEY = "dvn-v10-travel-minibus-series";
+          if (!localStorage.getItem(NEW_MODELS_KEY)) {
+            const newModels: BaseModels[] = ["Travel Series", "Mini Bus Series"];
+            const moffusilExtras = loaded["Moffusil"]?.extrasPricing ?? {
+              "art-work": 15000, "audio-video": 45000, "decorative-lights": 25000,
+              "stickers": 8000, "bottom-aluminium-sheet-extra": 0, "black-cobra-plywood-extra": 0,
+            };
+            newModels.forEach(model => {
+              if (!loaded[model]) {
+                const specGroups = structuredClone(SPEC_CONFIGURATOR);
+                const chassisGroup = specGroups.find((g: SpecCategoryGroup) => g.groupName === "CHASSIS");
+                if (chassisGroup) {
+                  const btField = chassisGroup.fields.find((f: Category) => f.id === "body-type");
+                  if (btField && !btField.options.includes(model)) btField.options = [...btField.options, model];
+                }
+                loaded[model] = {
+                  basePrice: BUS_MODELS_BASE[model].basePrice,
+                  specGroups,
+                  standardSelections: structuredClone(STANDARD_VARIATIONS[model]),
+                  extrasPricing: structuredClone(moffusilExtras),
+                  structurePricing: {},
+                  seatingRows: structuredClone(DEFAULT_SEATING_ROWS),
+                };
+              }
+            });
+            localStorage.setItem(NEW_MODELS_KEY, "true");
+            migrationRan = true;
+          }
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
           // Only skip the save effect if no migration ran — migrations must write back to Supabase
           if (!migrationRan) skipNextSave.current = true;

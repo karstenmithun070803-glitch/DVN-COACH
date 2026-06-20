@@ -76,7 +76,7 @@ function NewJobPage() {
       setCurrentCloneId(null);
       setActiveModel("Town");
       setBasicInfo({ ...DEFAULT_BASIC_INFO });
-      setSelections(wrapStandard(profiles["Town"].standardSelections));
+      setSelections(wrapStandard(profiles["Town"]?.standardSelections ?? {}));
       setFieldNotes({});
       setSeating({});
       setIsStandardBuild(true);
@@ -170,7 +170,7 @@ function NewJobPage() {
     } else {
       // Brand new job with no draft
       setBasicInfo(DEFAULT_BASIC_INFO);
-      setSelections(wrapStandard(profiles["Town"].standardSelections));
+      setSelections(wrapStandard(profiles["Town"]?.standardSelections ?? {}));
     }
     setIsHydrated(true);
   // jobs (not jobs.length) so effect re-runs when the array reference changes (new load)
@@ -181,7 +181,7 @@ function NewJobPage() {
   useEffect(() => {
     if (!isHydrated) return;
     if (isStandardBuild && !currentEditId && !currentCloneId) {
-      setSelections(wrapStandard(profiles[activeModel].standardSelections));
+      setSelections(wrapStandard(profiles[activeModel]?.standardSelections ?? {}));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModel]);
@@ -203,7 +203,7 @@ function NewJobPage() {
   const handleStandardToggle = (checked: boolean) => {
     setIsStandardBuild(checked);
     if (checked) {
-      setSelections(wrapStandard(profiles[activeModel].standardSelections));
+      setSelections(wrapStandard(profiles[activeModel]?.standardSelections ?? {}));
     } else {
       setSelections({});
     }
@@ -297,7 +297,7 @@ function NewJobPage() {
     );
   }
 
-  const activeProfile = profiles[activeModel];
+  const activeProfile = profiles[activeModel] ?? profiles["Moffusil"];
   const SPEC_CONFIGURATOR = activeProfile.specGroups;
   const seatingTotal = (activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS).reduce(
     (sum, r) => sum + (seating[r.id] || 0) * r.multiplier, 0
