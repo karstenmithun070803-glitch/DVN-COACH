@@ -15,8 +15,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "Username and password are required" }, { status: 400 });
   }
 
-  const validUser = process.env.AUTH_USERNAME;
-  const validPass = process.env.AUTH_PASSWORD;
+  // Trimmed because a value pasted into a hosting dashboard often carries a
+  // trailing newline, which makes bcrypt reject an otherwise-correct hash.
+  const validUser = process.env.AUTH_USERNAME?.trim();
+  const validPass = process.env.AUTH_PASSWORD?.trim();
 
   let isAdmin = false;
   if (validUser && validPass && username === validUser) {
