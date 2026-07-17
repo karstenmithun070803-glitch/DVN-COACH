@@ -18,7 +18,11 @@ export async function POST(req: NextRequest) {
   const validUser = process.env.AUTH_USERNAME;
   const validPass = process.env.AUTH_PASSWORD;
 
-  const isAdmin = validUser && validPass && username === validUser && password === validPass;
+  let isAdmin = false;
+  if (validUser && validPass && username === validUser) {
+    const isBcrypt = validPass.startsWith("$2b$") || validPass.startsWith("$2a$");
+    isAdmin = isBcrypt ? await compare(password, validPass) : validPass === password;
+  }
 
   let isStaff = false;
   if (!isAdmin) {
