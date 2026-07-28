@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_SEATING_ROWS } from "@/data/specs";
 import { JobCard } from "@/data/mockKanbanData";
 import { t } from "@/data/translation";
+import { filterValidSelections } from "@/utils/specSelections";
 
 export default function VaultPage() {
   const { jobs, isLoaded, deleteJobPermanently, deliverJob, undeliverJob } = useJobs();
@@ -133,9 +134,16 @@ export default function VaultPage() {
               {/* Specifications */}
               <div className="columns-2 gap-16 text-[14px]">
                 {printJob.selections && (() => {
-                  const specFields = profiles[printJob.model]?.specGroups.flatMap(g => g.fields) ?? [];
+                  const printSpecGroups = profiles[printJob.model]?.specGroups;
+                  const specFields = printSpecGroups?.flatMap(g => g.fields) ?? [];
                   const nameToId = Object.fromEntries(specFields.map(f => [f.name, f.id]));
-                  return Object.entries(printJob.selections).map(([key, val]) => {
+                  // Reconcile against the model's *current* live spec config so a
+                  // deleted option never resurfaces on a reprint — falls back to the
+                  // raw stored selections only if the model's profile hasn't loaded.
+                  const effectiveSelections = printSpecGroups
+                    ? filterValidSelections(printJob.selections, printSpecGroups)
+                    : (printJob.selections ?? {});
+                  return Object.entries(effectiveSelections).map(([key, val]) => {
                     const note = printJob.fieldNotes?.[nameToId[key]];
                     const vals = Array.isArray(val) ? val : [val];
                     return (

@@ -17,7 +17,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useAdminSettings } from "@/context/AdminSettingsContext";
+import { useJobs } from "@/context/JobsContext";
 import { BaseModels, SpecCategoryGroup, Category } from "@/data/specs";
+import { migrateFieldRename, migrateOptionRename } from "@/utils/specSelections";
 import {
   ChevronDown,
   ChevronUp,
@@ -350,6 +352,7 @@ function SortableFieldRow({
     renameOption,
     toggleFieldNote,
   } = useAdminSettings();
+  const { jobs, updateJob } = useJobs();
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(field.name);
@@ -369,7 +372,10 @@ function SortableFieldRow({
 
   const commitFieldRename = () => {
     const trimmed = editNameValue.trim();
-    if (trimmed && trimmed !== field.name) renameField(model, groupName, field.id, trimmed);
+    if (trimmed && trimmed !== field.name) {
+      renameField(model, groupName, field.id, trimmed);
+      migrateFieldRename(jobs, updateJob, model, field.name, trimmed);
+    }
     setIsEditingName(false);
   };
 
@@ -515,7 +521,10 @@ function SortableFieldRow({
                   setStandardSelection(model, field.name, isActive ? "" : opt);
                 }}
                 onRemove={() => onRequestBroadcast({ type: "delete-option", groupName, fieldId: field.id, option: opt })}
-                onRename={(oldOpt, newOpt) => renameOption(model, groupName, field.id, oldOpt, newOpt)}
+                onRename={(oldOpt, newOpt) => {
+                  renameOption(model, groupName, field.id, oldOpt, newOpt);
+                  migrateOptionRename(jobs, updateJob, model, field.name, oldOpt, newOpt);
+                }}
                 onUpdatePrice={(price) => updateOptionPrice(model, groupName, field.id, opt, price)}
               />
             ))}

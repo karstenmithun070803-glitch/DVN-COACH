@@ -10,6 +10,7 @@ import { useAdminSettings } from "@/context/AdminSettingsContext";
 import { useJobs } from "@/context/JobsContext";
 import { useAuth } from "@/context/AuthContext";
 import { t } from "@/data/translation";
+import { filterValidSelections } from "@/utils/specSelections";
 
 const DRAFT_NEW_KEY = "dvn-new-job-draft";
 const editDraftKey = (id: string) => `dvn-edit-draft-${id}`;
@@ -249,7 +250,7 @@ function NewJobPage() {
       address: basicInfo.address || undefined,
       model: activeModel,
       startDate: basicInfo.date,
-      selections: { ...selections },
+      selections: filterValidSelections(selections, profiles[activeModel]?.specGroups ?? []),
       fieldNotes: Object.keys(fieldNotes).length > 0 ? { ...fieldNotes } : undefined,
       seatingCapacity: Object.values(seating).some(v => v > 0) ? { ...seating } : undefined,
       totalEstimate: currentEstimate
@@ -272,12 +273,22 @@ function NewJobPage() {
     }
   };
 
+  // ─── Effective selections ───────────────────────────────────────────────────
+  // Raw `selections` state can carry entries whose option (or field) has since
+  // been deleted from Admin Master — this reconciles against the model's
+  // *current* live spec config so print/estimate/live-spec never show a
+  // deleted option again, regardless of how it got into `selections`.
+  const effectiveSelections = useMemo(() => {
+    if (!isLoaded) return {};
+    return filterValidSelections(selections, profiles[activeModel]?.specGroups ?? []);
+  }, [selections, profiles, activeModel, isLoaded]);
+
   // ─── Estimate ─────────────────────────────────────────────────────────────
   const currentEstimate = useMemo(() => {
     if (!isLoaded) return 0;
     const profile = profiles[activeModel];
     let total = profile.basePrice;
-    Object.entries(selections).forEach(([key, vals]) => {
+    Object.entries(effectiveSelections).forEach(([key, vals]) => {
       const fieldDef = profile.specGroups.flatMap(s => s.fields).find(f => f.name === key);
       if (fieldDef?.optionPricing) {
         vals.forEach(val => {
@@ -287,7 +298,7 @@ function NewJobPage() {
       }
     });
     return total;
-  }, [activeModel, selections, profiles, isLoaded]);
+  }, [activeModel, effectiveSelections, profiles, isLoaded]);
 
   if (!isLoaded) {
     return (
@@ -354,11 +365,11 @@ function NewJobPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-6">
-              {Object.keys(selections).length === 0 && seatingTotal === 0 ? (
+              {Object.keys(effectiveSelections).length === 0 && seatingTotal === 0 ? (
                 <p className="text-sm text-slate-400 italic text-center py-8">No specifications selected yet.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-                  {Object.entries(selections).map(([key, vals]) => (
+                  {Object.entries(effectiveSelections).map(([key, vals]) => (
                     <div key={key} className="flex justify-between items-start border-b border-slate-100 py-2">
                       <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">{key}</span>
                       <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}</span>
@@ -576,7 +587,7 @@ function NewJobPage() {
               <table className="w-full border-collapse text-[13px]">
                 <tbody>
                   {activeProfile.specGroups.map(group => {
-                    const groupFields = group.fields.filter(f => selections[f.name]);
+                    const groupFields = group.fields.filter(f => effectiveSelections[f.name] || (f.noteEnabled && fieldNotes[f.id]));
                     const isSeatingSlot = group.groupName === "FITTINGS";
                     const hasSeating = isSeatingSlot && Object.values(seating).some(v => v > 0);
                     if (groupFields.length === 0 && !hasSeating) return null;
@@ -623,7 +634,7 @@ function NewJobPage() {
                                     "py-[3px] pl-1 align-top font-bold text-slate-900",
                                     isTamil && "font-extrabold text-[14px]"
                                   )}>
-                                    {selections[field.name].map((v: string, vi: number) => {
+                                    {(effectiveSelections[field.name] ?? []).map((v: string, vi: number) => {
                                       const price = printMode === "priced" ? (field.optionPricing?.[v] ?? 0) : 0;
                                       return (
                                         <span key={vi}>
@@ -785,16 +796,16 @@ function NewJobPage() {
               >
                 <span>Live Specifications</span>
                 <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">
-                  {Object.keys(selections).length + (seatingTotal > 0 ? 1 : 0)} Items
+                  {Object.keys(effectiveSelections).length + (seatingTotal > 0 ? 1 : 0)} Items
                 </span>
               </div>
-              {Object.keys(selections).length === 0 && seatingTotal === 0 ? (
+              {Object.keys(effectiveSelections).length === 0 && seatingTotal === 0 ? (
                 <p className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
                   No specifications selected.
                 </p>
               ) : (
                 <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-2">
-                  {Object.entries(selections).map(([key, vals]) => (
+                  {Object.entries(effectiveSelections).map(([key, vals]) => (
                     <div key={key} className="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0 last:pb-0">
                       <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t(key, isTamil)}</span>
                       <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}</span>
