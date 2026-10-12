@@ -100,7 +100,7 @@ export default function AdminMasterPage() {
                 element: <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} readOnly={readOnly} />,
               },
               {
-                groupName: "EXTRA PRICE",
+                groupName: "WIRING",
                 element: <UsbChargerManager key={selectedModel} model={selectedModel} isOpen={usbOpen} onToggle={() => setUsbOpen(v => !v)} readOnly={readOnly} />,
               },
             ]}

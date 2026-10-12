@@ -608,7 +608,7 @@ function NewJobPage() {
                     const groupFields = group.fields.filter(f => effectiveSelections[f.name] || (f.noteEnabled && fieldNotes[f.id]));
                     const isSeatingSlot = group.groupName === "FITTINGS";
                     const hasSeating = isSeatingSlot && Object.values(seating).some(v => v > 0);
-                    const hasUsb = group.groupName === "EXTRA PRICE" && usbQty > 0;
+                    const hasUsb = group.groupName === "WIRING" && usbQty > 0;
                     if (groupFields.length === 0 && !hasSeating && !hasUsb) return null;
                     const seatingRows = hasSeating ? (activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS) : [];
                     const printRows = hasSeating
@@ -678,8 +678,8 @@ function NewJobPage() {
                           <>
                             {groupFields.length === 0 && (
                               <tr className="break-after-avoid">
-                                <td colSpan={3} className="pt-6 pb-0.5 border-b border-slate-800">
-                                  <span className="uppercase tracking-widest text-[15px] font-extrabold text-slate-900">{t(group.groupName, isTamil)}</span>
+                                <td colSpan={3} className="pt-4 pb-0.5 border-b border-slate-300">
+                                  <span className="uppercase tracking-widest text-[11px] font-bold text-slate-500">{t(group.groupName, isTamil)}</span>
                                 </td>
                               </tr>
                             )}
@@ -1061,7 +1061,7 @@ function NewJobPage() {
                         </div>
                       )}
                     </div>
-                    {section.groupName === "EXTRA PRICE" && (
+                    {section.groupName === "WIRING" && (
                       <div
                         id="section-USB CHARGER + WIRING"
                         className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
