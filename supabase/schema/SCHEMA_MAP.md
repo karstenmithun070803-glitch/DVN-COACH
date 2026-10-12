@@ -27,6 +27,7 @@
 | `selections` | jsonb | YES | NULL | Map of spec field name → selected option values array |
 | `fieldNotes` | jsonb | YES | NULL | Map of spec field name → free-text note |
 | `seatingCapacity` | jsonb | YES | NULL | Map of seating row id → computed passenger count |
+| `quantities` | jsonb | YES | NULL | Map of perUnit field id → quantity (migration 20261012_003; not yet verified live) |
 | `totalEstimate` | numeric(14,2) | YES | NULL | Total price estimate in INR |
 | `status` | text | NO | `'active'` | Lifecycle: `active` / `archived` / `delivered` |
 | `deliveredDate` | text | YES | NULL | ISO date string set when status → `delivered` |

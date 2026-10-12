@@ -150,7 +150,10 @@ export default function VaultPage() {
                       <div key={key} className="break-inside-avoid mb-3 border-b border-slate-200 pb-1.5">
                         <div className="flex justify-between items-end">
                           <span className="text-slate-600 uppercase font-semibold text-xs tracking-wider">{t(key, false)}</span>
-                          <span className="font-bold text-slate-900 text-right">{vals.map(v => t(v, false)).join(", ")}</span>
+                          <span className="font-bold text-slate-900 text-right">
+                            {vals.map(v => t(v, false)).join(", ")}
+                            {printJob.quantities?.[nameToId[key]] ? ` × ${printJob.quantities[nameToId[key]]}` : ""}
+                          </span>
                         </div>
                         {note && (
                           <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>

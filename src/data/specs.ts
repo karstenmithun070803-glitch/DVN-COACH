@@ -22,6 +22,7 @@ export interface Category {
   nameTamil?: string; // For Admin overrides
   options: FieldOption[];
   noteEnabled?: boolean;
+  perUnit?: boolean; // option price is per unit; job stores a qty
   optionPricing?: Record<string, number>; // key = option value, value = ₹ price delta
 }
 

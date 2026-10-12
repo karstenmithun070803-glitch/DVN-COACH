@@ -21,6 +21,7 @@ export interface JobCard {
   selections?: Record<string, string[]>;
   fieldNotes?: Record<string, string>;
   seatingCapacity?: Record<string, number>;
+  quantities?: Record<string, number>;
   totalEstimate?: number;
   status: "active" | "delivered" | "archived";
   deliveredDate?: string;

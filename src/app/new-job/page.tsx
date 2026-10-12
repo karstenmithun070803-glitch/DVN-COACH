@@ -60,6 +60,7 @@ function NewJobPage() {
   const [printMode, setPrintMode] = useState<"plain" | "priced">("plain");
   const [basicInfo, setBasicInfo] = useState(DEFAULT_BASIC_INFO);
   const [seating, setSeating] = useState<Record<string, number>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   // isHydrated is STATE (not ref) so the persist effect only fires on the render
   // AFTER hydration — by which point all setState calls from hydration are applied.
@@ -102,6 +103,7 @@ function NewJobPage() {
         setSelections(draft.selections ?? {});
         setFieldNotes(draft.fieldNotes ?? {});
         setSeating(draft.seating ?? {});
+        setQuantities(draft.quantities ?? {});
         setIsStandardBuild(false);
         setIsHydrated(true);
         return;
@@ -128,6 +130,7 @@ function NewJobPage() {
       }
       if (job.fieldNotes) setFieldNotes(job.fieldNotes);
       if (job.seatingCapacity) setSeating(job.seatingCapacity);
+      if (job.quantities) setQuantities(job.quantities);
       setIsStandardBuild(false);
       setIsHydrated(true);
       return;
@@ -167,6 +170,7 @@ function NewJobPage() {
       setSelections(draft.selections ?? {});
       setFieldNotes(draft.fieldNotes ?? {});
       setSeating(draft.seating ?? {});
+      setQuantities(draft.quantities ?? {});
       setIsStandardBuild(draft.isStandardBuild ?? true);
     } else {
       // Brand new job with no draft
@@ -192,13 +196,13 @@ function NewJobPage() {
   // AFTER hydration completes — so it always sees the correct hydrated values.
   useEffect(() => {
     if (!isHydrated) return;
-    const draft = { basicInfo, activeModel, selections, fieldNotes, seating, isStandardBuild };
+    const draft = { basicInfo, activeModel, selections, fieldNotes, seating, quantities, isStandardBuild };
     if (editId) {
       localStorage.setItem(editDraftKey(editId), JSON.stringify(draft));
     } else if (!cloneId) {
       localStorage.setItem(DRAFT_NEW_KEY, JSON.stringify(draft));
     }
-  }, [isHydrated, basicInfo, activeModel, selections, fieldNotes, seating, isStandardBuild, editId, cloneId]);
+  }, [isHydrated, basicInfo, activeModel, selections, fieldNotes, seating, quantities, isStandardBuild, editId, cloneId]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
   const handleStandardToggle = (checked: boolean) => {
@@ -236,6 +240,7 @@ function NewJobPage() {
     setSelections(wrapStandard(profiles[activeModel].standardSelections));
     setFieldNotes({});
     setSeating({});
+    setQuantities({});
     setIsStandardBuild(true);
     setShowClearModal(false);
   };
@@ -253,6 +258,7 @@ function NewJobPage() {
       selections: filterValidSelections(selections, profiles[activeModel]?.specGroups ?? []),
       fieldNotes: Object.keys(fieldNotes).length > 0 ? { ...fieldNotes } : undefined,
       seatingCapacity: Object.values(seating).some(v => v > 0) ? { ...seating } : undefined,
+      quantities: Object.keys(chargedQuantities).length > 0 ? chargedQuantities : undefined,
       totalEstimate: currentEstimate
     };
 
@@ -283,6 +289,25 @@ function NewJobPage() {
     return filterValidSelections(selections, profiles[activeModel]?.specGroups ?? []);
   }, [selections, profiles, activeModel, isLoaded]);
 
+  // perUnit fields: price is per piece; qty (default 1) applies while a priced option is selected.
+  const isPerUnitCharged = (field: { name: string; perUnit?: boolean; optionPricing?: Record<string, number> }) =>
+    !!field.perUnit && (effectiveSelections[field.name] ?? []).some(v => field.optionPricing?.[v]);
+  const unitQty = (fieldId: string) => quantities[fieldId] || 1;
+  const liveQtySuffix = (fieldName: string) => {
+    const f = (profiles[activeModel]?.specGroups ?? []).flatMap(g => g.fields).find(f => f.name === fieldName);
+    return f && isPerUnitCharged(f) ? ` × ${unitQty(f.id)}` : "";
+  };
+
+  const chargedQuantities = useMemo(() => {
+    const out: Record<string, number> = {};
+    (profiles[activeModel]?.specGroups ?? []).flatMap(g => g.fields).forEach(f => {
+      if (f.perUnit && (effectiveSelections[f.name] ?? []).some(v => f.optionPricing?.[v])) {
+        out[f.id] = quantities[f.id] || 1;
+      }
+    });
+    return out;
+  }, [profiles, activeModel, effectiveSelections, quantities]);
+
   // ─── Estimate ─────────────────────────────────────────────────────────────
   const currentEstimate = useMemo(() => {
     if (!isLoaded) return 0;
@@ -293,12 +318,12 @@ function NewJobPage() {
       if (fieldDef?.optionPricing) {
         vals.forEach(val => {
           const price = fieldDef.optionPricing![val];
-          if (price) total += price;
+          if (price) total += price * (fieldDef.perUnit ? (quantities[fieldDef.id] || 1) : 1);
         });
       }
     });
     return total;
-  }, [activeModel, effectiveSelections, profiles, isLoaded]);
+  }, [activeModel, effectiveSelections, profiles, isLoaded, quantities]);
 
   if (!isLoaded) {
     return (
@@ -372,7 +397,7 @@ function NewJobPage() {
                   {Object.entries(effectiveSelections).map(([key, vals]) => (
                     <div key={key} className="flex justify-between items-start border-b border-slate-100 py-2">
                       <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">{key}</span>
-                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}</span>
+                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}{liveQtySuffix(key)}</span>
                     </div>
                   ))}
                   {seatingTotal > 0 && (
@@ -635,11 +660,14 @@ function NewJobPage() {
                                     isTamil && "font-extrabold text-[14px]"
                                   )}>
                                     {(effectiveSelections[field.name] ?? []).map((v: string, vi: number) => {
-                                      const price = printMode === "priced" ? (field.optionPricing?.[v] ?? 0) : 0;
+                                      const unitPrice = field.optionPricing?.[v] ?? 0;
+                                      const q = field.perUnit && unitPrice !== 0 ? unitQty(field.id) : 1;
+                                      const price = printMode === "priced" ? unitPrice * q : 0;
                                       return (
                                         <span key={vi}>
                                           {vi > 0 && ", "}
                                           {t(v, isTamil)}
+                                          {field.perUnit && unitPrice !== 0 && ` × ${q}`}
                                           {price !== 0 && (
                                             <span className={price > 0 ? "text-teal-700" : "text-orange-600"}>
                                               {" "}({price > 0 ? "+" : "-"}₹{fmtPrice(Math.abs(price))})
@@ -808,7 +836,7 @@ function NewJobPage() {
                   {Object.entries(effectiveSelections).map(([key, vals]) => (
                     <div key={key} className="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0 last:pb-0">
                       <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t(key, isTamil)}</span>
-                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}</span>
+                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}{liveQtySuffix(key)}</span>
                     </div>
                   ))}
                   {seatingTotal > 0 && (
@@ -999,6 +1027,26 @@ function NewJobPage() {
                                   );
                                 })}
                               </div>
+                              {isPerUnitCharged(field) && (() => {
+                                const unit = Math.max(...(selections[field.name] ?? []).map(v => field.optionPricing?.[v] ?? 0));
+                                const q = unitQty(field.id);
+                                return (
+                                  <div className="mt-3 flex items-center gap-3">
+                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Qty</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={quantities[field.id] ?? ""}
+                                      placeholder="1"
+                                      onChange={e => setQuantities(prev => ({ ...prev, [field.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                      className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                    />
+                                    <span className="text-sm font-semibold text-teal-700">
+                                      {q} × ₹{fmtPrice(unit)} = ₹{fmtPrice(unit * q)}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                               {field.noteEnabled && (
                                 <textarea
                                   value={fieldNotes[field.id] ?? ""}

@@ -351,6 +351,7 @@ function SortableFieldRow({
     renameField,
     renameOption,
     toggleFieldNote,
+    toggleFieldPerUnit,
   } = useAdminSettings();
   const { jobs, updateJob } = useJobs();
 
@@ -454,6 +455,18 @@ function SortableFieldRow({
             title={field.noteEnabled ? "Disable Note Box" : "Enable Note Box"}
           >
             <StickyNote className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => toggleFieldPerUnit(model, groupName, field.id)}
+            className={cn(
+              "px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
+              field.perUnit
+                ? "text-teal-600 bg-teal-50 hover:bg-teal-100"
+                : "text-slate-300 hover:text-teal-500 hover:bg-teal-50"
+            )}
+            title={field.perUnit ? "Per-unit pricing ON: price is per piece, qty asked in New Job" : "Turn on per-unit pricing"}
+          >
+            ×Qty
           </button>
           {!readOnly && (
             <>

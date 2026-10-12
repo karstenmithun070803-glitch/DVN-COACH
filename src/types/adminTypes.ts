@@ -17,6 +17,8 @@ export interface Category {
   options: string[];
   optionPricing?: Record<string, number>;
   note?: string;
+  noteEnabled?: boolean;
+  perUnit?: boolean;
 }
 
 export interface SpecCategoryGroup {
