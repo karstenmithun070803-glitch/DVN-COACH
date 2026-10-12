@@ -13,6 +13,7 @@ import {
   DEFAULT_SEATING_ROWS,
 } from "@/data/specs";
 import { arrayMove } from "@dnd-kit/sortable";
+import { useAuth } from "@/context/AuthContext";
 
 export interface BusModelProfile {
   basePrice: number;
@@ -48,6 +49,7 @@ interface AdminContextType {
   removeSeatingRow: (model: BaseModels, id: string) => void;
   updateUsbChargerPrice: (model: BaseModels, pricePerUnit: number) => void;
   isLoaded: boolean;
+  saveError: string | null;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -60,7 +62,18 @@ const FULL_SYNC_KEY = "dvn-v5-full-moffusil-baseline"; // One-time copy of Moffu
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Record<BaseModels, BusModelProfile>>({} as Record<BaseModels, BusModelProfile>);
   const [isLoaded, setIsLoaded] = useState(false);
-  const skipNextSave = useRef(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const { role } = useAuth();
+  const roleRef = useRef(role);
+  // JSON of the profiles known to match the server. Saves are skipped while profiles equal it,
+  // so remote pushes and fresh loads never echo back as writes.
+  const syncedJson = useRef<string | null>(null);
+  const profilesRef = useRef(profiles);
+  useEffect(() => {
+    roleRef.current = role;
+    profilesRef.current = profiles;
+  });
+  const remoteReadFailed = useRef(false);
 
   useEffect(() => {
     async function load() {
@@ -72,7 +85,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
           .from("admin_settings")
           .select("profiles")
           .eq("id", "singleton")
-          .single();
+          .maybeSingle();
+        remoteReadFailed.current = !!error;
         if (!error && data?.profiles && Object.keys(data.profiles).length > 0) {
           const loaded = data.profiles as Record<BaseModels, BusModelProfile>;
           // Run group-rename migration on Supabase data
@@ -119,8 +133,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
             migrationRan = true;
           }
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loaded));
-          // Only skip the save effect if no migration ran — migrations must write back to Supabase
-          if (!migrationRan) skipNextSave.current = true;
+          // Migrations must write back to Supabase, so only mark as synced when none ran
+          if (!migrationRan) syncedJson.current = JSON.stringify(loaded);
           setProfiles(loaded);
           setIsLoaded(true);
           return;
@@ -454,33 +468,81 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
 
     // Both the localStorage and fresh-install paths converge here
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentProfiles));
+    // If the server read failed, this local copy may be stale: never auto-upload it.
+    // If the server simply has no row yet, leave syncedJson null so the super admin's save effect uploads it.
+    if (remoteReadFailed.current) syncedJson.current = JSON.stringify(currentProfiles);
     setProfiles(currentProfiles);
     setIsLoaded(true);
-    // Upload to Supabase so other devices pick up the latest state
-    if (isSupabaseConfigured) {
-      supabase.from("admin_settings")
-        .upsert({ id: "singleton", profiles: currentProfiles, updated_at: new Date().toISOString() })
-        .then(({ error }) => {
-          if (error) console.error("[AdminSettings] Initial upload failed:", error.message);
-        });
-    }
     }
     load();
 
   }, []);
 
+  // ─── Live sync for staff: realtime push + refetch on focus / every 30s ───────
+  // The super admin is the single writer, so their own screen ignores incoming pushes.
+  useEffect(() => {
+    if (!isLoaded || !isSupabaseConfigured) return;
+
+    const applyRemote = (remote: Record<BaseModels, BusModelProfile> | null | undefined) => {
+      if (!remote || Object.keys(remote).length === 0) return;
+      if (roleRef.current === "SUPER_ADMIN") return;
+      const json = JSON.stringify(remote);
+      if (json === JSON.stringify(profilesRef.current)) { syncedJson.current = json; return; }
+      syncedJson.current = json;
+      localStorage.setItem(LOCAL_STORAGE_KEY, json);
+      setProfiles(remote);
+    };
+
+    const refetch = async () => {
+      const { data, error } = await supabase
+        .from("admin_settings").select("profiles").eq("id", "singleton").maybeSingle();
+      if (!error) applyRemote(data?.profiles as Record<BaseModels, BusModelProfile> | undefined);
+    };
+
+    const channel = supabase
+      .channel("admin-settings-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "admin_settings" }, payload => {
+        applyRemote((payload.new as { profiles?: Record<BaseModels, BusModelProfile> })?.profiles);
+      })
+      .subscribe(status => {
+        if (status === "SUBSCRIBED") refetch();
+      });
+
+    const onVisible = () => { if (document.visibilityState === "visible") refetch(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refetch);
+    const timer = window.setInterval(onVisible, 30000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refetch);
+      window.clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [isLoaded]);
+
   useEffect(() => {
     if (!isLoaded) return;
-    if (skipNextSave.current) { skipNextSave.current = false; return; }
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
-    if (isSupabaseConfigured) {
-      supabase.from("admin_settings")
-        .upsert({ id: "singleton", profiles, updated_at: new Date().toISOString() })
-        .then(({ error }) => {
-          if (error) console.error("[AdminSettings] Supabase write failed:", error.message);
-        });
-    }
-  }, [profiles, isLoaded]);
+    const json = JSON.stringify(profiles);
+    if (json === syncedJson.current) return;
+    localStorage.setItem(LOCAL_STORAGE_KEY, json);
+    // Only the super admin writes the shared settings; staff devices stay read-only.
+    if (!isSupabaseConfigured || role !== "SUPER_ADMIN") return;
+    supabase.from("admin_settings")
+      .upsert({ id: "singleton", profiles, updated_at: new Date().toISOString() })
+      .select("id")
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[AdminSettings] Supabase write failed:", error.message);
+          setSaveError(error.message);
+        } else if (!data || data.length === 0) {
+          setSaveError("Server rejected the save (check admin_settings policies in Supabase)");
+        } else {
+          syncedJson.current = json;
+          setSaveError(null);
+        }
+      });
+  }, [profiles, isLoaded, role]);
 
   const updateBasePrice = (model: BaseModels, price: number) => {
     setProfiles(prev => {
@@ -756,7 +818,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       updateSeatingRow,
       removeSeatingRow,
       updateUsbChargerPrice,
-      isLoaded
+      isLoaded,
+      saveError
     }}>
       {children}
     </AdminContext.Provider>

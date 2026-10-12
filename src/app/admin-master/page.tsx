@@ -14,7 +14,7 @@ const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Se
 const ADMIN_DRAFT_KEY = "dvn-admin-master-draft";
 
 export default function AdminMasterPage() {
-  const { profiles, isLoaded } = useAdminSettings();
+  const { profiles, isLoaded, saveError } = useAdminSettings();
   const { role } = useAuth();
   const readOnly = role === "STAFF";
   const [seatingOpen, setSeatingOpen] = useState(false);
@@ -70,6 +70,12 @@ export default function AdminMasterPage() {
           </div>
         </div>
       </div>
+
+      {saveError && !readOnly && (
+        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-sm text-rose-700 font-medium">
+          Changes are NOT saved to the server, so other users cannot see them: {saveError}
+        </div>
+      )}
 
       {readOnly && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 font-medium">
