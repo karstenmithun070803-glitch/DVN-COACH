@@ -7,6 +7,7 @@ import { BaseModels } from "@/data/specs";
 import { ModelPriceEditor } from "@/components/admin/ModelPriceEditor";
 import { SpecMasterManager } from "@/components/admin/SpecMasterManager";
 import { SeatingRowsManager } from "@/components/admin/SeatingRowsManager";
+import { UsbChargerManager } from "@/components/admin/UsbChargerManager";
 import { Settings2, Bus } from "lucide-react";
 
 const MODELS: BaseModels[] = ["Moffusil", "Town", "College", "Staff", "Kerala Series", "Travel Series", "Mini Bus Series"];
@@ -17,6 +18,7 @@ export default function AdminMasterPage() {
   const { role } = useAuth();
   const readOnly = role === "STAFF";
   const [seatingOpen, setSeatingOpen] = useState(false);
+  const [usbOpen, setUsbOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<BaseModels>(() => {
     if (typeof window === "undefined") return "Moffusil";
     try {
@@ -92,10 +94,16 @@ export default function AdminMasterPage() {
             specGroups={activeProfile.specGroups}
             standardSelections={activeProfile.standardSelections}
             readOnly={readOnly}
-            afterGroupSlot={{
-              groupName: "FITTINGS",
-              element: <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} readOnly={readOnly} />,
-            }}
+            afterGroupSlots={[
+              {
+                groupName: "FITTINGS",
+                element: <SeatingRowsManager key={selectedModel} model={selectedModel} isOpen={seatingOpen} onToggle={() => setSeatingOpen(v => !v)} readOnly={readOnly} />,
+              },
+              {
+                groupName: "EXTRA PRICE",
+                element: <UsbChargerManager key={selectedModel} model={selectedModel} isOpen={usbOpen} onToggle={() => setUsbOpen(v => !v)} readOnly={readOnly} />,
+              },
+            ]}
           />
         </div>
       </div>

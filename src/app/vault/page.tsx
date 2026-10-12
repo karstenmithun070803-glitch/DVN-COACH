@@ -150,10 +150,7 @@ export default function VaultPage() {
                       <div key={key} className="break-inside-avoid mb-3 border-b border-slate-200 pb-1.5">
                         <div className="flex justify-between items-end">
                           <span className="text-slate-600 uppercase font-semibold text-xs tracking-wider">{t(key, false)}</span>
-                          <span className="font-bold text-slate-900 text-right">
-                            {vals.map(v => t(v, false)).join(", ")}
-                            {printJob.quantities?.[nameToId[key]] ? ` × ${printJob.quantities[nameToId[key]]}` : ""}
-                          </span>
+                          <span className="font-bold text-slate-900 text-right">{vals.map(v => t(v, false)).join(", ")}</span>
                         </div>
                         {note && (
                           <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{note}</p>
@@ -213,6 +210,13 @@ export default function VaultPage() {
                   </div>
                 );
               })()}
+
+              {(printJob?.quantities?.["usb-charger"] ?? 0) > 0 && (
+                <div className="mt-4 flex justify-between items-end border-b border-slate-200 pb-1.5">
+                  <span className="text-slate-600 uppercase font-semibold text-xs tracking-wider">USB Charger + Wiring</span>
+                  <span className="font-bold text-slate-900">{printJob?.quantities?.["usb-charger"]} Units</span>
+                </div>
+              )}
 
               {/* Extras & Terms */}
               <div className="mt-10 pt-5 border-t-2 border-black break-inside-avoid">

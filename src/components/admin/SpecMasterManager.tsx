@@ -37,7 +37,7 @@ interface SpecMasterManagerProps {
   specGroups: SpecCategoryGroup[];
   standardSelections: Record<string, string>;
   readOnly?: boolean;
-  afterGroupSlot?: { groupName: string; element: React.ReactNode };
+  afterGroupSlots?: { groupName: string; element: React.ReactNode }[];
 }
 
 // ─── Level 1: Sortable Option Chip ────────────────────────────────────────────
@@ -351,7 +351,6 @@ function SortableFieldRow({
     renameField,
     renameOption,
     toggleFieldNote,
-    toggleFieldPerUnit,
   } = useAdminSettings();
   const { jobs, updateJob } = useJobs();
 
@@ -455,18 +454,6 @@ function SortableFieldRow({
             title={field.noteEnabled ? "Disable Note Box" : "Enable Note Box"}
           >
             <StickyNote className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => toggleFieldPerUnit(model, groupName, field.id)}
-            className={cn(
-              "px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
-              field.perUnit
-                ? "text-teal-600 bg-teal-50 hover:bg-teal-100"
-                : "text-slate-300 hover:text-teal-500 hover:bg-teal-50"
-            )}
-            title={field.perUnit ? "Per-unit pricing ON: price is per piece, qty asked in New Job" : "Turn on per-unit pricing"}
-          >
-            ×Qty
           </button>
           {!readOnly && (
             <>
@@ -727,7 +714,7 @@ function SortableGroupCard({
 
 // ─── Root: SpecMasterManager ───────────────────────────────────────────────────
 
-export function SpecMasterManager({ model, specGroups, standardSelections, readOnly, afterGroupSlot }: SpecMasterManagerProps) {
+export function SpecMasterManager({ model, specGroups, standardSelections, readOnly, afterGroupSlots }: SpecMasterManagerProps) {
   const { reorderGroups, addOption, addField, removeOption, removeField } = useAdminSettings();
   const [activeAccordion, setActiveAccordion] = useState<string>("CHASSIS");
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -803,7 +790,7 @@ export function SpecMasterManager({ model, specGroups, standardSelections, readO
                   readOnly={readOnly}
                   onRequestBroadcast={setPendingAction}
                 />
-                {afterGroupSlot?.groupName === group.groupName && afterGroupSlot.element}
+                {afterGroupSlots?.filter(s => s.groupName === group.groupName).map((s, i) => <Fragment key={i}>{s.element}</Fragment>)}
               </Fragment>
             ))}
           </div>

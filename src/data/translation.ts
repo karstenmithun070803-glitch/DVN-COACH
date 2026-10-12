@@ -287,6 +287,10 @@ export const TAMIL_TRANSLATIONS: Record<string, string> = {
   "2 Line": "2 வரி",
   "LED 12+2": "எல்இடி 12+2",
 
+  "USB CHARGER + WIRING": "யூஎஸ்பி சார்ஜர் + வயரிங்",
+  "USB Charger + Wiring": "யூஎஸ்பி சார்ஜர் + வயரிங்",
+  "Units": "எண்ணிக்கை",
+  "Unit": "எண்",
   // Seating Capacity rows
   "SEATING CAPACITY": "இருக்கை திறன்",
   "Seating Capacity": "இருக்கை திறன்",

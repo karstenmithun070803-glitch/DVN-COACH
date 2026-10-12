@@ -26,7 +26,7 @@ export interface JobCard {
   selections?: Record<string, string[]>;
   fieldNotes?: Record<string, string>;
   seatingCapacity?: Record<string, number>;
-  quantities?: Record<string, number>;  // keyed by field id, for perUnit fields
+  quantities?: Record<string, number>;  // e.g. { "usb-charger": 10 }
   totalEstimate?: number;
   status: JobStatus;
   deliveredDate?: string;     // ISO date string, set when status → 'delivered'

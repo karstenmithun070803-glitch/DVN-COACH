@@ -15,6 +15,8 @@ import { filterValidSelections } from "@/utils/specSelections";
 const DRAFT_NEW_KEY = "dvn-new-job-draft";
 const editDraftKey = (id: string) => `dvn-edit-draft-${id}`;
 
+const USB_KEY = "usb-charger";
+
 const fmtPrice = (p: number) => {
   const abs = Math.abs(p);
   if (abs >= 100000) return `${(abs / 100000).toFixed(abs % 100000 === 0 ? 0 : 1)}L`;
@@ -258,7 +260,7 @@ function NewJobPage() {
       selections: filterValidSelections(selections, profiles[activeModel]?.specGroups ?? []),
       fieldNotes: Object.keys(fieldNotes).length > 0 ? { ...fieldNotes } : undefined,
       seatingCapacity: Object.values(seating).some(v => v > 0) ? { ...seating } : undefined,
-      quantities: Object.keys(chargedQuantities).length > 0 ? chargedQuantities : undefined,
+      quantities: usbQty > 0 ? { [USB_KEY]: usbQty } : undefined,
       totalEstimate: currentEstimate
     };
 
@@ -289,24 +291,9 @@ function NewJobPage() {
     return filterValidSelections(selections, profiles[activeModel]?.specGroups ?? []);
   }, [selections, profiles, activeModel, isLoaded]);
 
-  // perUnit fields: price is per piece; qty (default 1) applies while a priced option is selected.
-  const isPerUnitCharged = (field: { name: string; perUnit?: boolean; optionPricing?: Record<string, number> }) =>
-    !!field.perUnit && (effectiveSelections[field.name] ?? []).some(v => field.optionPricing?.[v]);
-  const unitQty = (fieldId: string) => quantities[fieldId] || 1;
-  const liveQtySuffix = (fieldName: string) => {
-    const f = (profiles[activeModel]?.specGroups ?? []).flatMap(g => g.fields).find(f => f.name === fieldName);
-    return f && isPerUnitCharged(f) ? ` × ${unitQty(f.id)}` : "";
-  };
-
-  const chargedQuantities = useMemo(() => {
-    const out: Record<string, number> = {};
-    (profiles[activeModel]?.specGroups ?? []).flatMap(g => g.fields).forEach(f => {
-      if (f.perUnit && (effectiveSelections[f.name] ?? []).some(v => f.optionPricing?.[v])) {
-        out[f.id] = quantities[f.id] || 1;
-      }
-    });
-    return out;
-  }, [profiles, activeModel, effectiveSelections, quantities]);
+  const usbPrice = profiles[activeModel]?.usbCharger?.pricePerUnit ?? 0;
+  const usbQty = quantities[USB_KEY] ?? 0;
+  const usbTotal = usbPrice * usbQty;
 
   // ─── Estimate ─────────────────────────────────────────────────────────────
   const currentEstimate = useMemo(() => {
@@ -318,12 +305,12 @@ function NewJobPage() {
       if (fieldDef?.optionPricing) {
         vals.forEach(val => {
           const price = fieldDef.optionPricing![val];
-          if (price) total += price * (fieldDef.perUnit ? (quantities[fieldDef.id] || 1) : 1);
+          if (price) total += price;
         });
       }
     });
-    return total;
-  }, [activeModel, effectiveSelections, profiles, isLoaded, quantities]);
+    return total + usbTotal;
+  }, [activeModel, effectiveSelections, profiles, isLoaded, usbTotal]);
 
   if (!isLoaded) {
     return (
@@ -390,20 +377,26 @@ function NewJobPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-6">
-              {Object.keys(effectiveSelections).length === 0 && seatingTotal === 0 ? (
+              {Object.keys(effectiveSelections).length === 0 && seatingTotal === 0 && usbQty === 0 ? (
                 <p className="text-sm text-slate-400 italic text-center py-8">No specifications selected yet.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                   {Object.entries(effectiveSelections).map(([key, vals]) => (
                     <div key={key} className="flex justify-between items-start border-b border-slate-100 py-2">
                       <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">{key}</span>
-                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}{liveQtySuffix(key)}</span>
+                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{vals.join(", ")}</span>
                     </div>
                   ))}
                   {seatingTotal > 0 && (
                     <div className="flex justify-between items-start border-b border-slate-100 py-2">
                       <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">Seating Capacity</span>
                       <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{seatingTotal} Seats</span>
+                    </div>
+                  )}
+                  {usbQty > 0 && (
+                    <div className="flex justify-between items-start border-b border-slate-100 py-2">
+                      <span className="text-xs text-slate-500 uppercase tracking-wide w-1/2 leading-tight mt-0.5">USB Charger + Wiring</span>
+                      <span className="text-sm font-semibold text-slate-800 text-right w-1/2">{usbQty} Units</span>
                     </div>
                   )}
                 </div>
@@ -615,7 +608,8 @@ function NewJobPage() {
                     const groupFields = group.fields.filter(f => effectiveSelections[f.name] || (f.noteEnabled && fieldNotes[f.id]));
                     const isSeatingSlot = group.groupName === "FITTINGS";
                     const hasSeating = isSeatingSlot && Object.values(seating).some(v => v > 0);
-                    if (groupFields.length === 0 && !hasSeating) return null;
+                    const hasUsb = group.groupName === "EXTRA PRICE" && usbQty > 0;
+                    if (groupFields.length === 0 && !hasSeating && !hasUsb) return null;
                     const seatingRows = hasSeating ? (activeProfile.seatingRows ?? DEFAULT_SEATING_ROWS) : [];
                     const printRows = hasSeating
                       ? seatingRows
@@ -660,14 +654,11 @@ function NewJobPage() {
                                     isTamil && "font-extrabold text-[14px]"
                                   )}>
                                     {(effectiveSelections[field.name] ?? []).map((v: string, vi: number) => {
-                                      const unitPrice = field.optionPricing?.[v] ?? 0;
-                                      const q = field.perUnit && unitPrice !== 0 ? unitQty(field.id) : 1;
-                                      const price = printMode === "priced" ? unitPrice * q : 0;
+                                      const price = printMode === "priced" ? (field.optionPricing?.[v] ?? 0) : 0;
                                       return (
                                         <span key={vi}>
                                           {vi > 0 && ", "}
                                           {t(v, isTamil)}
-                                          {field.perUnit && unitPrice !== 0 && ` × ${q}`}
                                           {price !== 0 && (
                                             <span className={price > 0 ? "text-teal-700" : "text-orange-600"}>
                                               {" "}({price > 0 ? "+" : "-"}₹{fmtPrice(Math.abs(price))})
@@ -681,6 +672,29 @@ function NewJobPage() {
                                 </tr>
                               );
                             })}
+                          </>
+                        )}
+                        {hasUsb && (
+                          <>
+                            {groupFields.length === 0 && (
+                              <tr className="break-after-avoid">
+                                <td colSpan={3} className="pt-6 pb-0.5 border-b border-slate-800">
+                                  <span className="uppercase tracking-widest text-[15px] font-extrabold text-slate-900">{t(group.groupName, isTamil)}</span>
+                                </td>
+                              </tr>
+                            )}
+                            <tr className="break-inside-avoid">
+                              <td className={cn("py-[3px] pr-3 align-top font-semibold uppercase text-slate-700", isTamil && "font-bold text-[13px]")}>
+                                {t("USB Charger + Wiring", isTamil)}
+                              </td>
+                              <td className="py-[3px] px-1 align-top text-slate-500 font-normal">:</td>
+                              <td className={cn("py-[3px] pl-1 align-top font-bold text-slate-900", isTamil && "font-extrabold text-[14px]")}>
+                                {usbQty} {t("Units", isTamil)}
+                                {printMode === "priced" && usbTotal > 0 && (
+                                  <span className="text-teal-700"> ({usbQty} × ₹{fmtPrice(usbPrice)} = ₹{fmtPrice(usbTotal)})</span>
+                                )}
+                              </td>
+                            </tr>
                           </>
                         )}
                         {hasSeating && (
@@ -824,10 +838,10 @@ function NewJobPage() {
               >
                 <span>Live Specifications</span>
                 <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">
-                  {Object.keys(effectiveSelections).length + (seatingTotal > 0 ? 1 : 0)} Items
+                  {Object.keys(effectiveSelections).length + (seatingTotal > 0 ? 1 : 0) + (usbQty > 0 ? 1 : 0)} Items
                 </span>
               </div>
-              {Object.keys(effectiveSelections).length === 0 && seatingTotal === 0 ? (
+              {Object.keys(effectiveSelections).length === 0 && seatingTotal === 0 && usbQty === 0 ? (
                 <p className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
                   No specifications selected.
                 </p>
@@ -836,13 +850,19 @@ function NewJobPage() {
                   {Object.entries(effectiveSelections).map(([key, vals]) => (
                     <div key={key} className="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0 last:pb-0">
                       <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t(key, isTamil)}</span>
-                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}{liveQtySuffix(key)}</span>
+                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{vals.map(v => t(v, isTamil)).join(", ")}</span>
                     </div>
                   ))}
                   {seatingTotal > 0 && (
                     <div className="flex justify-between items-start border-b border-slate-50 pb-2">
                       <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t("Seating Capacity", isTamil)}</span>
                       <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{seatingTotal} Seats</span>
+                    </div>
+                  )}
+                  {usbQty > 0 && (
+                    <div className="flex justify-between items-start border-b border-slate-50 pb-2">
+                      <span className="text-[11px] text-[#64748B] uppercase tracking-tight w-1/3 leading-tight font-medium mt-0.5">{t("USB Charger + Wiring", isTamil)}</span>
+                      <span className="text-sm font-medium text-[#333333] text-right w-2/3 leading-snug">{usbQty} {t("Units", isTamil)}</span>
                     </div>
                   )}
                 </div>
@@ -1027,26 +1047,6 @@ function NewJobPage() {
                                   );
                                 })}
                               </div>
-                              {isPerUnitCharged(field) && (() => {
-                                const unit = Math.max(...(selections[field.name] ?? []).map(v => field.optionPricing?.[v] ?? 0));
-                                const q = unitQty(field.id);
-                                return (
-                                  <div className="mt-3 flex items-center gap-3">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Qty</span>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      value={quantities[field.id] ?? ""}
-                                      placeholder="1"
-                                      onChange={e => setQuantities(prev => ({ ...prev, [field.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                                      className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                    />
-                                    <span className="text-sm font-semibold text-teal-700">
-                                      {q} × ₹{fmtPrice(unit)} = ₹{fmtPrice(unit * q)}
-                                    </span>
-                                  </div>
-                                );
-                              })()}
                               {field.noteEnabled && (
                                 <textarea
                                   value={fieldNotes[field.id] ?? ""}
@@ -1061,6 +1061,44 @@ function NewJobPage() {
                         </div>
                       )}
                     </div>
+                    {section.groupName === "EXTRA PRICE" && (
+                      <div
+                        id="section-USB CHARGER + WIRING"
+                        className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgb(0,0,0,0.1)] border border-slate-50 overflow-hidden"
+                      >
+                        <div
+                          className={cn("p-6 flex justify-between items-center cursor-pointer transition-all", activeSection === "USB CHARGER + WIRING" ? "bg-slate-50/50" : "hover:bg-slate-50/80")}
+                          onClick={() => handleSectionToggle("USB CHARGER + WIRING")}
+                        >
+                          <h3 className="text-base font-semibold text-[#475569]">
+                            {t("USB CHARGER + WIRING", isTamil)}
+                            {usbQty > 0 && <span className="ml-3 text-teal-600 font-bold">{usbQty} {t("Units", isTamil)}</span>}
+                          </h3>
+                          {activeSection === "USB CHARGER + WIRING" ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                        </div>
+                        {activeSection === "USB CHARGER + WIRING" && (
+                          <div className="p-6 pt-0 border-t border-slate-100 bg-white mt-4">
+                            <div className="flex flex-wrap items-center gap-4">
+                              <span className="text-slate-500 font-medium">₹{fmtPrice(usbPrice)} / {t("Unit", isTamil)}</span>
+                              <span className="text-slate-400">×</span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={usbQty === 0 ? "" : usbQty}
+                                onChange={e => setQuantities(prev => ({ ...prev, [USB_KEY]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                placeholder="0"
+                                className="w-24 min-h-[44px] text-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                              />
+                              <span className="text-slate-400">=</span>
+                              <span className="text-xl font-extrabold text-teal-600">{usbTotal > 0 ? `₹${fmtPrice(usbTotal)}` : "—"}</span>
+                            </div>
+                            {usbPrice === 0 && (
+                              <p className="mt-3 text-xs text-amber-600">Price per unit not set. Set it in Admin Master.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {isSeatingSlot && (
                       <div
                         id="section-SEATING CAPACITY"

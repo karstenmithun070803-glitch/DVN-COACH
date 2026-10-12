@@ -17,8 +17,6 @@ export interface Category {
   options: string[];
   optionPricing?: Record<string, number>;
   note?: string;
-  noteEnabled?: boolean;
-  perUnit?: boolean;
 }
 
 export interface SpecCategoryGroup {
@@ -34,6 +32,7 @@ export interface BusModelProfile {
   optionPricing?: Record<string, number>;
   structurePricing?: Record<string, number>;
   seatingRows?: SeatingRowConfig[];
+  usbCharger?: { pricePerUnit: number };
 }
 
 // Mirrors the Supabase admin_settings table structure.

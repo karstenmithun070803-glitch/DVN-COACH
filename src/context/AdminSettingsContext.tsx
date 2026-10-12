@@ -21,6 +21,7 @@ export interface BusModelProfile {
   extrasPricing: Record<string, number>;
   structurePricing: Record<string, number>; // key = "fieldId:optionValue"
   seatingRows: SeatingRowConfig[];
+  usbCharger?: { pricePerUnit: number };
 }
 
 interface AdminContextType {
@@ -42,10 +43,10 @@ interface AdminContextType {
   renameField: (model: BaseModels, groupName: string, fieldId: string, newName: string) => void;
   renameOption: (model: BaseModels, groupName: string, fieldId: string, oldOpt: string, newOpt: string) => void;
   toggleFieldNote: (model: BaseModels, groupName: string, fieldId: string) => void;
-  toggleFieldPerUnit: (model: BaseModels, groupName: string, fieldId: string) => void;
   addSeatingRow: (model: BaseModels, row: Omit<SeatingRowConfig, "id">) => void;
   updateSeatingRow: (model: BaseModels, id: string, changes: Partial<Omit<SeatingRowConfig, "id">>) => void;
   removeSeatingRow: (model: BaseModels, id: string) => void;
+  updateUsbChargerPrice: (model: BaseModels, pricePerUnit: number) => void;
   isLoaded: boolean;
 }
 
@@ -657,16 +658,6 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     });
   };
 
-  const toggleFieldPerUnit = (model: BaseModels, groupName: string, fieldId: string) => {
-    setProfiles(prev => {
-      const p = structuredClone(prev[model]);
-      const g = p.specGroups.find((g: SpecCategoryGroup) => g.groupName === groupName);
-      const f = g?.fields.find((f: Category) => f.id === fieldId);
-      if (f) f.perUnit = !f.perUnit;
-      return { ...prev, [model]: p };
-    });
-  };
-
   const addField = (model: BaseModels, groupName: string, fieldName: string) => {
     const id = fieldName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     setProfiles(prev => {
@@ -719,6 +710,14 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     });
   };
 
+  const updateUsbChargerPrice = (model: BaseModels, pricePerUnit: number) => {
+    setProfiles(prev => {
+      const p = structuredClone(prev[model]);
+      p.usbCharger = { pricePerUnit };
+      return { ...prev, [model]: p };
+    });
+  };
+
   const removeExtraItem = (model: BaseModels, fieldId: string) => {
     setProfiles(prev => {
       const targetProfile = structuredClone(prev[model]);
@@ -753,10 +752,10 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       renameField,
       renameOption,
       toggleFieldNote,
-      toggleFieldPerUnit,
       addSeatingRow,
       updateSeatingRow,
       removeSeatingRow,
+      updateUsbChargerPrice,
       isLoaded
     }}>
       {children}
